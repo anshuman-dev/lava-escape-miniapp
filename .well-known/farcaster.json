@@ -1,0 +1,17 @@
+{
+  "accountAssociation": {
+    "header": "PLACEHOLDER_HEADER",
+    "payload": "PLACEHOLDER_PAYLOAD", 
+    "signature": "PLACEHOLDER_SIGNATURE"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Lava Escape",
+    "iconUrl": "https://your-netlify-domain.netlify.app/icon.png",
+    "splashImageUrl": "https://your-netlify-domain.netlify.app/splash.png",
+    "splashBackgroundColor": "#667eea",
+    "homeUrl": "https://your-netlify-domain.netlify.app",
+    "subtitle": "Escape the rising lava!",
+    "description": "A thrilling climbing survival game where you must jump between platforms to escape rising lava. Each level gets faster - how high can you climb?"
+  }
+}

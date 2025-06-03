@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lava Escape</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            background: #1a1a2e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .game-header {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            color: #00ff88;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        canvas {
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+        }
+        
+        .controls {
+            text-align: center;
+            color: #fff;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .intro-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #ff6b6b;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        
+        .btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn:hover {
+            background: #00cc6a;
+        }
+        
+        .danger-btn {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        
+        .danger-btn:hover {
+            background: #ff5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h2>🌋 LAVA ESCAPE</h2>
+            <div class="stats">
+                <span>Jumps: <span id="jumps">0</span></span>
+                <span>Level: <span id="level">1</span></span>
+                <span>Speed: <span id="speed">1.0x</span></span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="360" height="500"></canvas>
+        
+        <div class="controls">
+            🎮 Arrow Keys/WASD • Space/Tap to jump • ESCAPE THE LAVA!
+        </div>
+        
+        <div class="intro-screen" id="introScreen">
+            <h3>🤔 Hey... what's happening?</h3>
+            <p id="introText">Everything seems normal...</p>
+            <button class="btn" id="continueBtn" onclick="nextIntroStep()">Continue</button>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h3 id="gameOverTitle">🔥 BURNED BY LAVA!</h3>
+            <p id="gameOverMessage">You couldn't escape in time!</p>
+            <p>Final Jumps: <span id="finalJumps">0</span></p>
+            <p>Level Reached: <span id="finalLevel">1</span></p>
+            <button class="btn" onclick="restartGame()">🔄 Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        let game = {
+            jumps: 0,
+            level: 1,
+            lavaSpeed: 0.5,
+            lavaHeight: 0,
+            running: false,
+            introStep: 0,
+            keys: {},
+            gameStarted: false,
+            cameraY: 0,
+            highestPlayerY: 460,
+            deathReason: "burned",
+            deathTimer: 0,
+            dyingState: false,
+            levelNotification: {
+                show: false,
+                level: 1,
+                timer: 0
+            }
+        };
+        
+        // Player
+        let player = {
+            x: 180,
+            y: 460,
+            width: 8,
+            height: 16,
+            velocityX: 0,
+            velocityY: 0,
+            onGround: true,
+            jumpPower: -15,
+            speed: 5,
+            hasJumped: false
+        };
+        
+        // Platforms
+        let platforms = [];
+        let highestPlatform = 480;
+        
+        // Intro sequence
+        let introMessages = [
+            "Everything seems normal...",
+            "Wait... do you feel that rumbling? 🤔",
+            "OH NO! LAVA IS RISING! 🌋",
+            "JUMP TO SAVE YOUR LIFE! ⬆️"
+        ];
+        
+        function nextIntroStep() {
+            game.introStep++;
+            
+            if (game.introStep < introMessages.length) {
+                document.getElementById('introText').textContent = introMessages[game.introStep];
+                if (game.introStep === introMessages.length - 1) {
+                    document.getElementById('continueBtn').textContent = "START JUMPING!";
+                    document.getElementById('continueBtn').className = "btn danger-btn";
+                }
+            } else {
+                startGame();
+            }
+        }
+        
+        function startGame() {
+            document.getElementById('introScreen').style.display = 'none';
+            game.running = true;
+            game.gameStarted = true;
+            generateInitialPlatforms();
+        }
+        
+        function generateInitialPlatforms() {
+            platforms = [];
+            
+            // Starting ground platform (will be consumed by lava)
+            platforms.push({x: 0, y: 480, width: 360, height: 20, type: 'ground'});
+            
+            // Generate platforms going up
+            for (let i = 1; i <= 20; i++) {
+                let width = 80 + Math.random() * 100;
+                let x = Math.random() * (360 - width);
+                let y = 480 - (i * 70);
+                
+                platforms.push({
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: 12,
+                    type: 'platform'
+                });
+                
+                highestPlatform = y;
+            }
+        }
+        
+        function generateMorePlatforms() {
+            // Add platforms above current highest
+            for (let i = 0; i < 5; i++) {
+                let width = 80 + Math.random() * 100;
+                let x = Math.random() * (360 - width);
+                highestPlatform -= 70;
+                
+                platforms.push({
+                    x: x,
+                    y: highestPlatform,
+                    width: width,
+                    height: 12,
+                    type: 'platform'
+                });
+            }
+        }
+        
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            game.keys[e.code] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            game.keys[e.code] = false;
+        });
+        
+        // Mobile controls
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (game.running && player.onGround) {
+                player.velocityY = player.jumpPower;
+                player.onGround = false;
+                player.hasJumped = true;
+            }
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            if (game.running && player.onGround) {
+                player.velocityY = player.jumpPower;
+                player.onGround = false;
+                player.hasJumped = true;
+            }
+        });
+        
+        function updatePlayer() {
+            if (!game.running) return;
+            
+            // Handle input
+            if (game.keys['ArrowLeft'] || game.keys['KeyA']) {
+                player.velocityX = -player.speed;
+            } else if (game.keys['ArrowRight'] || game.keys['KeyD']) {
+                player.velocityX = player.speed;
+            } else {
+                player.velocityX *= 0.8; // Friction
+            }
+            
+            if ((game.keys['Space'] || game.keys['ArrowUp'] || game.keys['KeyW']) && player.onGround) {
+                player.velocityY = player.jumpPower;
+                player.onGround = false;
+                player.hasJumped = true;
+            }
+            
+            // Apply gravity
+            player.velocityY += 0.8;
+            
+            // Update position
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Screen wrapping
+            if (player.x < 0) player.x = canvas.width - player.width;
+            if (player.x > canvas.width) player.x = 0;
+            
+            // Check platform collisions
+            let wasOnGround = player.onGround;
+            player.onGround = false;
+            
+            for (let platform of platforms) {
+                if (player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.y + player.height > platform.y &&
+                    player.y < platform.y + platform.height) {
+                    
+                    // Landing on top of platform
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y + 5) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                        
+                        // Count jump when landing (not when taking off)
+                        if (!wasOnGround && player.hasJumped) {
+                            game.jumps++;
+                            player.hasJumped = false;
+                            checkLevelUp();
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Generate more platforms if player is climbing high
+            if (player.y < highestPlatform + 200) {
+                generateMorePlatforms();
+            }
+        }
+        
+        function checkLevelUp() {
+            let newLevel = Math.floor(game.jumps / 15) + 1;
+            if (newLevel > game.level) {
+                game.level = newLevel;
+                game.lavaSpeed += 0.3; // Increase lava speed each level
+                
+                // Show level up notification
+                game.levelNotification.show = true;
+                game.levelNotification.level = newLevel;
+                game.levelNotification.timer = 120; // 2 seconds at 60fps
+            }
+        }
+        
+        function updateCamera() {
+            // Track the highest point the player has reached
+            if (player.y < game.highestPlayerY) {
+                game.highestPlayerY = player.y;
+            }
+            
+            // Move camera to keep player in view when they climb high
+            let targetCameraY = game.highestPlayerY - 200; // Keep player in upper portion of screen
+            game.cameraY = Math.min(game.cameraY, targetCameraY); // Camera can only move up, never down
+        }
+        
+        function updateLevelNotification() {
+            if (game.levelNotification.show) {
+                game.levelNotification.timer--;
+                if (game.levelNotification.timer <= 0) {
+                    game.levelNotification.show = false;
+                }
+            }
+        }
+        
+        function updateLava() {
+            if (!game.running) return;
+            
+            // Lava rises from bottom of the world (not screen)
+            game.lavaHeight += game.lavaSpeed;
+            
+            // Check if lava caught the player (visible lava touching player)
+            let lavaWorldY = 500 - game.lavaHeight; // Lava starts at y=500 and goes up
+            if (player.y + player.height >= lavaWorldY) {
+                game.deathReason = "burned";
+                gameOver();
+                return;
+            }
+            
+            // Check if player fell off screen (below camera view)
+            let playerScreenY = player.y - game.cameraY;
+            if (playerScreenY > canvas.height + 50) {
+                // Player is off screen - start death timer
+                if (!game.dyingState) {
+                    game.dyingState = true;
+                    game.deathTimer = 120; // 2 seconds at 60fps
+                    
+                    // Determine death reason based on whether lava is visible
+                    let lavaScreenY = lavaWorldY - game.cameraY;
+                    if (lavaScreenY < canvas.height) {
+                        // Lava is visible on screen
+                        game.deathReason = "fell";
+                    } else {
+                        // No lava visible - fell from height
+                        game.deathReason = "offscreen";
+                    }
+                }
+            }
+            
+            // Handle death timer
+            if (game.dyingState) {
+                game.deathTimer--;
+                if (game.deathTimer <= 0) {
+                    gameOver();
+                }
+            }
+        }
+        
+        function drawStickman(x, y) {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            
+            // Head
+            ctx.beginPath();
+            ctx.arc(x + 4, y + 3, 3, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Body
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 6);
+            ctx.lineTo(x + 4, y + 12);
+            ctx.stroke();
+            
+            // Arms (animated when jumping)
+            ctx.beginPath();
+            if (!player.onGround) {
+                // Arms up when jumping
+                ctx.moveTo(x + 4, y + 8);
+                ctx.lineTo(x + 1, y + 5);
+                ctx.moveTo(x + 4, y + 8);
+                ctx.lineTo(x + 7, y + 5);
+            } else {
+                // Arms normal
+                ctx.moveTo(x + 1, y + 8);
+                ctx.lineTo(x + 7, y + 8);
+            }
+            ctx.stroke();
+            
+            // Legs
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 12);
+            ctx.lineTo(x + 1, y + 16);
+            ctx.moveTo(x + 4, y + 12);
+            ctx.lineTo(x + 7, y + 16);
+            ctx.stroke();
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw platforms (relative to camera)
+            for (let platform of platforms) {
+                let drawY = platform.y - game.cameraY;
+                
+                if (drawY > -20 && drawY < canvas.height + 20) {
+                    if (platform.type === 'ground') {
+                        ctx.fillStyle = '#8B4513';
+                    } else {
+                        ctx.fillStyle = '#228B22';
+                    }
+                    
+                    ctx.fillRect(platform.x, drawY, platform.width, platform.height);
+                    
+                    // Platform edge highlight
+                    ctx.fillStyle = '#32CD32';
+                    ctx.fillRect(platform.x, drawY, platform.width, 2);
+                }
+            }
+            
+            // Draw player (relative to camera) - only if not dying or still visible
+            let playerDrawY = player.y - game.cameraY;
+            if (playerDrawY <= canvas.height + 50) {
+                drawStickman(player.x, playerDrawY);
+            }
+            
+            // Draw rising lava (relative to camera and world position)
+            if (game.lavaHeight > 0) {
+                let lavaWorldY = 500 - game.lavaHeight; // Lava's world position
+                let lavaScreenY = lavaWorldY - game.cameraY; // Lava's screen position
+                
+                // Only draw lava if it's visible on screen
+                if (lavaScreenY < canvas.height) {
+                    let visibleLavaHeight = canvas.height - Math.max(0, lavaScreenY);
+                    let drawStartY = Math.max(0, lavaScreenY);
+                    
+                    // Lava gradient
+                    let gradient = ctx.createLinearGradient(0, drawStartY, 0, canvas.height);
+                    gradient.addColorStop(0, '#ff6b6b');
+                    gradient.addColorStop(0.5, '#ff4757');
+                    gradient.addColorStop(1, '#ff3742');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, drawStartY, canvas.width, visibleLavaHeight);
+                    
+                    // Lava bubbles effect
+                    ctx.fillStyle = '#ffda79';
+                    for (let i = 0; i < 10; i++) {
+                        let bubbleX = Math.random() * canvas.width;
+                        let bubbleY = drawStartY + Math.random() * Math.min(visibleLavaHeight, 50);
+                        let size = 2 + Math.random() * 4;
+                        
+                        ctx.beginPath();
+                        ctx.arc(bubbleX, bubbleY, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Lava warning text (only if lava is near top of screen)
+                    if (lavaScreenY > -50 && lavaScreenY < canvas.height - 50) {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 12px Courier New';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('🔥 LAVA RISING! 🔥', canvas.width/2, Math.max(20, lavaScreenY - 10));
+                    }
+                }
+            }
+            
+            // Show death countdown if player is dying
+            if (game.dyingState) {
+                let countdown = Math.ceil(game.deathTimer / 60);
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(`💀 ${countdown}`, canvas.width/2, canvas.height/2);
+                
+                ctx.font = 'bold 12px Courier New';
+                ctx.fillText('Fell off screen!', canvas.width/2, canvas.height/2 + 30);
+            }
+            
+            // Show level up notification
+            if (game.levelNotification.show) {
+                let opacity = game.levelNotification.timer / 120; // Fade out over time
+                
+                // Background overlay
+                ctx.fillStyle = `rgba(0, 255, 136, ${opacity * 0.4})`;
+                ctx.fillRect(0, 100, canvas.width, 80);
+                
+                // Main text
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                ctx.font = 'bold 18px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('🎉 LEVEL UP! 🎉', canvas.width/2, 130);
+                
+                ctx.font = 'bold 14px Courier New';
+                ctx.fillText(`REACHED LEVEL ${game.levelNotification.level}`, canvas.width/2, 150);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('jumps').textContent = game.jumps;
+            document.getElementById('level').textContent = game.level;
+            document.getElementById('speed').textContent = game.lavaSpeed.toFixed(1) + 'x';
+        }
+        
+        function gameOver() {
+            game.running = false;
+            game.dyingState = false;
+            
+            // Set different messages based on how player died
+            if (game.deathReason === "fell") {
+                document.getElementById('gameOverTitle').textContent = "💀 FELL INTO LAVA!";
+                document.getElementById('gameOverMessage').textContent = "You fell back into the lava pit!";
+            } else if (game.deathReason === "offscreen") {
+                document.getElementById('gameOverTitle').textContent = "💀 FELL FROM HEIGHT!";
+                document.getElementById('gameOverMessage').textContent = "You fell too far and couldn't recover!";
+            } else {
+                document.getElementById('gameOverTitle').textContent = "🔥 BURNED BY LAVA!";
+                document.getElementById('gameOverMessage').textContent = "The lava caught up to you!";
+            }
+            
+            document.getElementById('finalJumps').textContent = game.jumps;
+            document.getElementById('finalLevel').textContent = game.level;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        function restartGame() {
+            game = {
+                jumps: 0,
+                level: 1,
+                lavaSpeed: 0.5,
+                lavaHeight: 0,
+                running: false,
+                introStep: 0,
+                keys: {},
+                gameStarted: false,
+                cameraY: 0,
+                highestPlayerY: 460,
+                deathReason: "burned",
+                deathTimer: 0,
+                dyingState: false,
+                levelNotification: {
+                    show: false,
+                    level: 1,
+                    timer: 0
+                }
+            };
+            
+            player = {
+                x: 180,
+                y: 460,
+                width: 8,
+                height: 16,
+                velocityX: 0,
+                velocityY: 0,
+                onGround: true,
+                jumpPower: -15,
+                speed: 5,
+                hasJumped: false
+            };
+            
+            platforms = [];
+            highestPlatform = 480;
+            
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('introScreen').style.display = 'block';
+            document.getElementById('introText').textContent = introMessages[0];
+            document.getElementById('continueBtn').textContent = "Continue";
+            document.getElementById('continueBtn').className = "btn";
+        }
+        
+        function gameLoop() {
+            updatePlayer();
+            updateCamera();
+            updateLevelNotification();
+            updateLava();
+            draw();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize game
+        generateInitialPlatforms();
+        gameLoop();
+    </script>
+</body>
+</html>
