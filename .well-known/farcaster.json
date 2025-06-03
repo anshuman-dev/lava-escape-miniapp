@@ -1,8 +1,8 @@
 {
   "accountAssociation": {
-    "header": "PLACEHOLDER_HEADER",
-    "payload": "PLACEHOLDER_PAYLOAD", 
-    "signature": "PLACEHOLDER_SIGNATURE"
+    "header": "eyJmaWQiOjEwNDYwMjYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgxMzdjMmUyNmM2MzQwNzNCRDQyYTkxZjc5REVmNDFBOWY4MGRjMWNGIn0=",
+    "payload": "eyJkb21haW4iOiJsYXZhLWVzY2FwZS5uZXRsaWZ5LmFwcCJ9", 
+    "signature": "0x3c62ec24e32e562b5bbb5bfd80e834b06cda22fbb196a869d84090d0173a9c02160eef31b6a0f83f93073ac24e4b2915f90615856c333d0a1ed325e4204aa62e1c"
   },
   "frame": {
     "version": "1",
@@ -10,7 +10,7 @@
     "iconUrl": "https://your-netlify-domain.netlify.app/icon.png",
     "splashImageUrl": "https://your-netlify-domain.netlify.app/splash.png",
     "splashBackgroundColor": "#667eea",
-    "homeUrl": "https://your-netlify-domain.netlify.app",
+    "homeUrl": "https://lava-escape.netlify.app/",
     "subtitle": "Escape the rising lava!",
     "description": "A thrilling climbing survival game where you must jump between platforms to escape rising lava. Each level gets faster - how high can you climb?"
   }
