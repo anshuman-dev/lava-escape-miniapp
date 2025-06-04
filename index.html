@@ -728,63 +728,69 @@
         gameLoop();
     </script>
 
-    <!-- Farcaster SDK - LOADED COMPLETELY ASYNCHRONOUSLY -->
+    <!-- Farcaster SDK - Using CDN approach from documentation -->
     <script type="module">
-        // Initialize Farcaster variables
-        window.farcasterSDK = null;
-        window.isInFarcaster = false;
-        window.userContext = null;
+        // Farcaster SDK integration - SAFE and NON-BLOCKING
+        let farcasterSDK = null;
+        let isInFarcaster = false;
         
-        // Async function to initialize Farcaster SDK - COMPLETELY NON-BLOCKING
+        // Detect if we're in an iframe (likely Farcaster)
+        const inIframe = window.self !== window.top;
+        
         async function initializeFarcaster() {
             try {
-                // Import SDK without blocking anything
+                // Use the official CDN method from Farcaster docs
                 const { sdk } = await import('https://esm.sh/@farcaster/frame-sdk');
-                window.farcasterSDK = sdk;
+                farcasterSDK = sdk;
                 
-                // Check if we're in a Farcaster environment
-                window.isInFarcaster = await sdk.isInMiniApp();
+                // Check if we're in a mini app
+                isInFarcaster = await sdk.isInMiniApp();
                 
-                if (window.isInFarcaster) {
-                    console.log('🚀 Running in Farcaster Mini App!');
+                if (isInFarcaster) {
+                    console.log('🚀 Farcaster Mini App detected');
+                    
+                    // Show Farcaster UI elements
+                    const farcasterInfo = document.getElementById('farcasterInfo');
+                    const socialActions = document.getElementById('socialActions');
+                    
+                    if (farcasterInfo) farcasterInfo.style.display = 'block';
+                    if (socialActions) socialActions.style.display = 'block';
                     
                     // Get user context
-                    window.userContext = sdk.context;
-                    
-                    // Show Farcaster info
-                    const farcasterInfo = document.getElementById('farcasterInfo');
-                    const userInfo = document.getElementById('userInfo');
-                    
-                    if (window.userContext && window.userContext.user) {
-                        const { user } = window.userContext;
-                        userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
+                    const userContext = sdk.context;
+                    if (userContext && userContext.user) {
+                        const userInfo = document.getElementById('userInfo');
+                        if (userInfo) {
+                            const { user } = userContext;
+                            userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
+                        }
                     }
                     
-                    farcasterInfo.style.display = 'block';
-                    
-                    // Show social actions
-                    document.getElementById('socialActions').style.display = 'block';
-                    
-                    // Call ready after a delay to ensure game is loaded
-                    setTimeout(async () => {
-                        try {
-                            await sdk.actions.ready();
-                            console.log('✅ Farcaster ready called');
-                        } catch (error) {
-                            console.log('⚠️ Ready call failed:', error);
-                        }
-                    }, 1000);
+                    // Call ready to dismiss splash screen
+                    await sdk.actions.ready();
+                    console.log('✅ Farcaster ready called');
+                } else {
+                    console.log('ℹ️ Not in mini app - running as web app');
                 }
             } catch (error) {
-                console.log('ℹ️ Farcaster SDK not available:', error);
-                // Gracefully continue without Farcaster features
+                console.log('ℹ️ Farcaster SDK not available or failed to load');
+                // If we're in an iframe but SDK failed, still try to dismiss splash
+                if (inIframe) {
+                    // Send a message to parent to dismiss splash screen
+                    try {
+                        window.parent.postMessage({ type: 'frame_ready' }, '*');
+                        console.log('📤 Sent frame_ready message to parent');
+                    } catch (e) {
+                        console.log('⚠️ Could not send message to parent');
+                    }
+                }
             }
         }
         
         // Global functions for Farcaster features
         window.shareScore = async function() {
-            if (!window.farcasterSDK || !window.isInFarcaster) {
-                alert('Share feature only available in Farcaster!');
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('Share feature only available in Farcaster');
                 return;
             }
             
@@ -796,7 +802,7 @@
                 const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} in Lava Escape! Can you beat my score? 🌋`;
                 const embeds = ['https://lava-escape.netlify.app'];
                 
-                await window.farcasterSDK.actions.composeCast({
+                await farcasterSDK.actions.composeCast({
                     text,
                     embeds
                 });
@@ -808,13 +814,68 @@
         };
         
         window.addToFarcaster = async function() {
-            if (!window.farcasterSDK || !window.isInFarcaster) {
-                alert('Add to app feature only available in Farcaster!');
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('Add to app feature only available in Farcaster');
                 return;
             }
             
             try {
-                await window.farcasterSDK.actions.addMiniApp();
+                await farcasterSDK.actions.addMiniApp();
+                console.log('✅ Add to app prompted');
+            } catch (error) {
+                console.log('⚠️ Failed to add to app:', error);
+            }
+        };
+        
+        // Helper function
+        function getScoreEmoji(jumps) {
+            if (jumps >= 100) return '🏆';
+            if (jumps >= 50) return '🥇';
+            if (jumps >= 25) return '🥈';
+            if (jumps >= 10) return '🥉';
+            return '🔥';
+        }
+        
+        // Initialize Farcaster after a short delay to ensure game loads first
+        setTimeout(initializeFarcaster, 500);
+        
+        // Initialize Farcaster after a short delay to ensure game loads first
+        setTimeout(initializeFarcaster, 500);
+        
+        // Global functions for Farcaster features
+        window.shareScore = async function() {
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('Share feature only available in Farcaster');
+                return;
+            }
+            
+            try {
+                const jumps = game.jumps;
+                const level = game.level;
+                const emoji = getScoreEmoji(jumps);
+                
+                const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} in Lava Escape! Can you beat my score? 🌋`;
+                const embeds = ['https://lava-escape.netlify.app'];
+                
+                await farcasterSDK.actions.composeCast({
+                    text,
+                    embeds
+                });
+                
+                console.log('✅ Cast composed successfully');
+            } catch (error) {
+                console.log('⚠️ Failed to compose cast:', error);
+            }
+        };
+        
+        window.addToFarcaster = async function() {
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('Add to app feature only available in Farcaster');
+                return;
+            }
+            
+            try {
+                await farcasterSDK.actions.addMiniApp();
                 console.log('✅ Add to app prompted');
             } catch (error) {
                 console.log('⚠️ Failed to add to app:', error);
