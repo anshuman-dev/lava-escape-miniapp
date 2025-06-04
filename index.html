@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lava Escape</title>
+    
+    <!-- Farcaster Meta Tags for Embedding -->
+    <meta name="fc:frame" content='{"version":"next","imageUrl":"https://lava-escape.netlify.app/splash.png","button":{"title":"🌋 Escape the Lava","action":{"type":"launch_frame","name":"Lava Escape","url":"https://lava-escape.netlify.app","splashImageUrl":"https://lava-escape.netlify.app/icon.png","splashBackgroundColor":"#1a1a2e"}}}' />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="🌋 Lava Escape - Jump to Survive!" />
+    <meta property="og:description" content="Help the stickman escape rising lava! Jump between platforms and climb as high as you can in this addictive survival game." />
+    <meta property="og:image" content="https://lava-escape.netlify.app/splash.png" />
+    <meta property="og:url" content="https://lava-escape.netlify.app" />
+    <meta property="og:type" content="website" />
+    
     <style>
         body {
             margin: 0;
@@ -40,6 +51,17 @@
             margin-bottom: 10px;
         }
         
+        .farcaster-info {
+            display: none;
+            text-align: center;
+            color: #00ff88;
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+        }
+        
         canvas {
             border: 2px solid #00ff88;
             border-radius: 5px;
@@ -53,6 +75,38 @@
             color: #fff;
             font-size: 12px;
             margin-top: 10px;
+        }
+        
+        .social-actions {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .social-btn {
+            background: #8a63d2;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .social-btn:hover {
+            background: #7a53c2;
+        }
+        
+        .social-btn.primary {
+            background: #00ff88;
+            color: #000;
+        }
+        
+        .social-btn.primary:hover {
+            background: #00cc6a;
         }
         
         .intro-screen {
@@ -111,6 +165,9 @@
     <div class="game-container">
         <div class="game-header">
             <h2>🌋 LAVA ESCAPE</h2>
+            <div class="farcaster-info" id="farcasterInfo">
+                <span id="userInfo">Playing in Farcaster!</span>
+            </div>
             <div class="stats">
                 <span>Jumps: <span id="jumps">0</span></span>
                 <span>Level: <span id="level">1</span></span>
@@ -122,6 +179,11 @@
         
         <div class="controls">
             🎮 Arrow Keys/WASD • Space/Tap to jump • ESCAPE THE LAVA!
+        </div>
+        
+        <div class="social-actions" id="socialActions">
+            <button class="social-btn primary" id="shareScore" onclick="shareScore()">📊 Share Score</button>
+            <button class="social-btn" id="addToApp" onclick="addToFarcaster()">➕ Add to App</button>
         </div>
         
         <div class="intro-screen" id="introScreen">
@@ -136,6 +198,7 @@
             <p>Final Jumps: <span id="finalJumps">0</span></p>
             <p>Level Reached: <span id="finalLevel">1</span></p>
             <button class="btn" onclick="restartGame()">🔄 Try Again</button>
+            <div style="margin-top: 10px;" id="gameOverSocial"></div>
         </div>
     </div>
 
@@ -143,7 +206,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Game state
+        // Game state - UNCHANGED FROM ORIGINAL
         let game = {
             jumps: 0,
             level: 1,
@@ -165,7 +228,7 @@
             }
         };
         
-        // Player
+        // Player - UNCHANGED FROM ORIGINAL
         let player = {
             x: 180,
             y: 460,
@@ -179,11 +242,11 @@
             hasJumped: false
         };
         
-        // Platforms
+        // Platforms - UNCHANGED FROM ORIGINAL
         let platforms = [];
         let highestPlatform = 480;
         
-        // Intro sequence
+        // Intro sequence - UNCHANGED FROM ORIGINAL
         let introMessages = [
             "Everything seems normal...",
             "Wait... do you feel that rumbling? 🤔",
@@ -191,6 +254,7 @@
             "JUMP TO SAVE YOUR LIFE! ⬆️"
         ];
         
+        // ALL GAME FUNCTIONS UNCHANGED FROM ORIGINAL
         function nextIntroStep() {
             game.introStep++;
             
@@ -253,7 +317,7 @@
             }
         }
         
-        // Input handling
+        // Input handling - UNCHANGED FROM ORIGINAL
         document.addEventListener('keydown', (e) => {
             game.keys[e.code] = true;
         });
@@ -262,7 +326,7 @@
             game.keys[e.code] = false;
         });
         
-        // Mobile controls
+        // Mobile controls - UNCHANGED FROM ORIGINAL
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
         });
@@ -590,6 +654,17 @@
             
             document.getElementById('finalJumps').textContent = game.jumps;
             document.getElementById('finalLevel').textContent = game.level;
+            
+            // Add social sharing options if in Farcaster and decent score
+            const gameOverSocial = document.getElementById('gameOverSocial');
+            if (window.farcasterSDK && window.isInFarcaster && game.jumps >= 5) {
+                gameOverSocial.innerHTML = `
+                    <button class="social-btn primary" onclick="shareScore()" style="margin: 5px;">📊 Share Score</button>
+                `;
+            } else {
+                gameOverSocial.innerHTML = '';
+            }
+            
             document.getElementById('gameOver').style.display = 'block';
         }
         
@@ -648,9 +723,115 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // Initialize game
+        // Initialize game - this runs immediately and independently of Farcaster
         generateInitialPlatforms();
         gameLoop();
+    </script>
+
+    <!-- Farcaster SDK - LOADED COMPLETELY ASYNCHRONOUSLY -->
+    <script type="module">
+        // Initialize Farcaster variables
+        window.farcasterSDK = null;
+        window.isInFarcaster = false;
+        window.userContext = null;
+        
+        // Async function to initialize Farcaster SDK - COMPLETELY NON-BLOCKING
+        async function initializeFarcaster() {
+            try {
+                // Import SDK without blocking anything
+                const { sdk } = await import('https://esm.sh/@farcaster/frame-sdk');
+                window.farcasterSDK = sdk;
+                
+                // Check if we're in a Farcaster environment
+                window.isInFarcaster = await sdk.isInMiniApp();
+                
+                if (window.isInFarcaster) {
+                    console.log('🚀 Running in Farcaster Mini App!');
+                    
+                    // Get user context
+                    window.userContext = sdk.context;
+                    
+                    // Show Farcaster info
+                    const farcasterInfo = document.getElementById('farcasterInfo');
+                    const userInfo = document.getElementById('userInfo');
+                    
+                    if (window.userContext && window.userContext.user) {
+                        const { user } = window.userContext;
+                        userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
+                    }
+                    
+                    farcasterInfo.style.display = 'block';
+                    
+                    // Show social actions
+                    document.getElementById('socialActions').style.display = 'block';
+                    
+                    // Call ready after a delay to ensure game is loaded
+                    setTimeout(async () => {
+                        try {
+                            await sdk.actions.ready();
+                            console.log('✅ Farcaster ready called');
+                        } catch (error) {
+                            console.log('⚠️ Ready call failed:', error);
+                        }
+                    }, 1000);
+                }
+            } catch (error) {
+                console.log('ℹ️ Farcaster SDK not available:', error);
+                // Gracefully continue without Farcaster features
+            }
+        }
+        
+        // Global functions for Farcaster features
+        window.shareScore = async function() {
+            if (!window.farcasterSDK || !window.isInFarcaster) {
+                alert('Share feature only available in Farcaster!');
+                return;
+            }
+            
+            try {
+                const jumps = game.jumps;
+                const level = game.level;
+                const emoji = getScoreEmoji(jumps);
+                
+                const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} in Lava Escape! Can you beat my score? 🌋`;
+                const embeds = ['https://lava-escape.netlify.app'];
+                
+                await window.farcasterSDK.actions.composeCast({
+                    text,
+                    embeds
+                });
+                
+                console.log('✅ Cast composed successfully');
+            } catch (error) {
+                console.log('⚠️ Failed to compose cast:', error);
+            }
+        };
+        
+        window.addToFarcaster = async function() {
+            if (!window.farcasterSDK || !window.isInFarcaster) {
+                alert('Add to app feature only available in Farcaster!');
+                return;
+            }
+            
+            try {
+                await window.farcasterSDK.actions.addMiniApp();
+                console.log('✅ Add to app prompted');
+            } catch (error) {
+                console.log('⚠️ Failed to add to app:', error);
+            }
+        };
+        
+        // Helper function to get emoji based on score
+        function getScoreEmoji(jumps) {
+            if (jumps >= 100) return '🏆';
+            if (jumps >= 50) return '🥇';
+            if (jumps >= 25) return '🥈';
+            if (jumps >= 10) return '🥉';
+            return '🔥';
+        }
+        
+        // Initialize Farcaster in the background - COMPLETELY NON-BLOCKING
+        initializeFarcaster();
     </script>
 </body>
 </html>
