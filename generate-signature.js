@@ -1,7 +1,7 @@
 // FRESH signature generator - completely new approach
 const fid = 1046026;
 const domain = "lava-escape.netlify.app";
-const walletAddress = "0x137c2e26c634073BD42a91f79DEf41A9f80dc1cF";
+const walletAddress = "0xE248E04F8beFF90AAEf94E2161415D43A71D51B0";
 
 // Create header and payload with exact formatting
 const header = {
