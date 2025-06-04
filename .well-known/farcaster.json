@@ -1,9 +1,10 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjEwNDYwMjYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgxMzdjMmUyNmM2MzQwNzNiZDQyYTkxZjc5REVmNDFBOWY4MGRjMWNGIn0",
+    "header": "eyJmaWQiOjEwNDYwMjYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg4NUMyODI4RTk2OGI2NThCOThiMkIzMUE5MTE1NzFEMzJEN0I1OTFlIn0",
     "payload": "eyJkb21haW4iOiJsYXZhLWVzY2FwZS5uZXRsaWZ5LmFwcCJ9",
-    "signature": "0xba720dd327b7ca5fc4b789f85cf9250e8c9eee19adb2354511ebdee57648d3334fee7c39572c44c42e85dc09a4a955ea8e923ea3dc9900399ed6dcd9fdb858d31c"
-  },
+    "signature": "MHgyMzFjYzgxZmI0NzU0Mjc0MjIwZjE5NzYzMWQyZTJiMTVkOTNkODhkMmY1YTU4ZjA5MTJmNjE1ZWNhZWM0MzA0NGU1MjhhM2U1ODc0ZDNlMDI5YjE1N2MwMDFmMjBkZDIwMzQyODhjOTk4NjliMmE1NjE5NWY4MmRjNmU2NjFkOTFi"
+  }
+,
   "frame": {
     "version": "1",
     "name": "Lava Escape",
