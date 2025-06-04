@@ -727,6 +727,25 @@
         generateInitialPlatforms();
         gameLoop();
     </script>
+    
+    <!-- Fallback for failed SDK import -->
+    <script>
+        // Add error handler for module script failures
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.includes('frame-sdk')) {
+                console.log('❌ Farcaster SDK failed to load, using fallbacks');
+                // Try postMessage fallback for iframe
+                if (window.self !== window.top) {
+                    try {
+                        window.parent.postMessage({ type: 'frame_ready' }, '*');
+                        console.log('📤 Fallback frame_ready sent');
+                    } catch (err) {
+                        console.log('⚠️ All fallbacks failed');
+                    }
+                }
+            }
+        }, true);
+    </script>
 
     <!-- Farcaster SDK - Using CDN approach from documentation -->
     <script type="module">
