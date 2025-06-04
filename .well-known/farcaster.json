@@ -7,8 +7,8 @@
   "frame": {
     "version": "1",
     "name": "Lava Escape",
-    "iconUrl": "https://your-netlify-domain.netlify.app/icon.png",
-    "splashImageUrl": "https://your-netlify-domain.netlify.app/splash.png",
+    "iconUrl": "https://lava-escape.netlify.app/icon.png",
+    "splashImageUrl": "https://lava-escape.netlify.app/splash.png",
     "splashBackgroundColor": "#667eea",
     "homeUrl": "https://lava-escape.netlify.app/",
     "subtitle": "Escape the rising lava!",
