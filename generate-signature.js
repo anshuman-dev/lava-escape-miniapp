@@ -1,35 +1,45 @@
-// Updated signature generator for farcaster.json manifest
+// FRESH signature generator - completely new approach
 const fid = 1046026;
 const domain = "lava-escape.netlify.app";
 const walletAddress = "0x137c2e26c634073BD42a91f79DEf41A9f80dc1cF";
 
-// Header (base64 encoded)
+// Create header and payload with exact formatting
 const header = {
-  fid: fid,
-  type: "custody",
-  key: walletAddress
+  "fid": fid,
+  "type": "custody",
+  "key": walletAddress
 };
 
-// Payload (base64 encoded) 
 const payload = {
-  domain: domain
+  "domain": domain
 };
 
-const headerBase64 = Buffer.from(JSON.stringify(header)).toString('base64');
-const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+// Convert to base64 - ensuring no extra whitespace
+const headerBase64 = btoa(JSON.stringify(header));
+const payloadBase64 = btoa(JSON.stringify(payload));
 
-console.log("=== FOR FARCASTER MANIFEST GENERATION ===");
-console.log("Header:", headerBase64);
-console.log("Payload:", payloadBase64);
-console.log("\nMessage to sign:", headerBase64 + "." + payloadBase64);
-console.log("\n1. Copy the 'Message to sign' above");
-console.log("2. Go to https://farcaster.xyz/~/developers/new");
-console.log("3. Enter your domain: lava-escape.netlify.app");
-console.log("4. Sign with your MetaMask wallet");
-console.log("5. Copy the signature and update the manifest file");
-
-// Expected values for the manifest:
-console.log("\n=== FOR MANIFEST FILE ===");
-console.log(`"header": "${headerBase64}",`);
-console.log(`"payload": "${payloadBase64}",`);
-console.log(`"signature": "REPLACE_WITH_SIGNATURE_FROM_WARPCAST_TOOL"`);
+console.log("=== FRESH SIGNATURE GENERATION ===");
+console.log("Header JSON:", JSON.stringify(header));
+console.log("Payload JSON:", JSON.stringify(payload));
+console.log();
+console.log("Header Base64:", headerBase64);
+console.log("Payload Base64:", payloadBase64);
+console.log();
+console.log("Message to sign:", headerBase64 + "." + payloadBase64);
+console.log();
+console.log("=== NEXT STEPS ===");
+console.log("1. Copy the 'Message to sign' above");
+console.log("2. Use the manual signing method below");
+console.log();
+console.log("=== MANUAL SIGNING CODE ===");
+console.log("// Paste this in browser console:");
+console.log(`
+const message = "${headerBase64}.${payloadBase64}";
+window.ethereum.request({
+  method: 'personal_sign',
+  params: [message, window.ethereum.selectedAddress]
+}).then(signature => {
+  console.log("✅ Your signature:", signature);
+  console.log("Copy this signature and use it in the manifest");
+});
+`);

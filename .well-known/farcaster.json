@@ -10,27 +10,23 @@
     "iconUrl": "https://lava-escape.netlify.app/icon.png",
     "homeUrl": "https://lava-escape.netlify.app",
     "imageUrl": "https://lava-escape.netlify.app/splash.png",
-    "buttonTitle": "🌋 Escape the Lava",
+    "buttonTitle": "Escape the Lava",
     "splashImageUrl": "https://lava-escape.netlify.app/icon.png",
     "splashBackgroundColor": "#1a1a2e",
     "subtitle": "Jump to survive the rising lava!",
-    "description": "Help the stickman escape rising lava! Jump between platforms and climb as high as you can in this addictive survival game. Test your reflexes and see how many jumps you can make before the lava catches you!",
+    "description": "Help the stickman escape rising lava!",
     "screenshotUrls": [
       "https://lava-escape.netlify.app/splash.png"
     ],
-    "primaryCategory": "game",
+    "primaryCategory": "games",
     "tags": [
-      "game",
-      "arcade",
-      "survival",
-      "jumping",
-      "lava",
-      "stickman"
+      "games",
+      "entertainment"
     ],
     "heroImageUrl": "https://lava-escape.netlify.app/splash.png",
-    "tagline": "Jump to survive the rising lava!",
+    "tagline": "Jump to survive!",
     "ogTitle": "🌋 Lava Escape - Jump to Survive!",
-    "ogDescription": "Help the stickman escape rising lava! Jump between platforms and climb as high as you can in this addictive survival game.",
+    "ogDescription": "Help the stickman escape rising lava!",
     "ogImageUrl": "https://lava-escape.netlify.app/splash.png"
   }
 }
