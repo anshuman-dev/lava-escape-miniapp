@@ -10,7 +10,7 @@
     "iconUrl": "https://lava-escape.netlify.app/icon.png",
     "homeUrl": "https://lava-escape.netlify.app",
     "imageUrl": "https://lava-escape.netlify.app/splash.png",
-    "buttonTitle": "Escape the Lava",
+    "buttonTitle": "🌋 Lava Escape - Jump to Survive!",
     "splashImageUrl": "https://lava-escape.netlify.app/icon.png",
     "splashBackgroundColor": "#1a1a2e",
     "subtitle": "Jump to survive the rising lava!",
@@ -25,7 +25,7 @@
     ],
     "heroImageUrl": "https://lava-escape.netlify.app/splash.png",
     "tagline": "Jump to survive!",
-    "ogTitle": "🌋 Lava Escape - Jump to Survive!",
+    "ogTitle": "Lava Escape - Jump to Survive!",
     "ogDescription": "Help the stickman escape rising lava!",
     "ogImageUrl": "https://lava-escape.netlify.app/splash.png"
   }
