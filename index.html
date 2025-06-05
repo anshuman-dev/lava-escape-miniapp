@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lava Escape</title>
     
+    <!-- Farcaster Meta Tags for Embedding - Updated for 2025 -->
+    <meta name="fc:frame" content='{"version":"next","imageUrl":"https://lava-escape.netlify.app/splash.png","button":{"title":"🌋 Escape the Lava","action":{"type":"launch_frame","name":"Lava Escape","url":"https://lava-escape.netlify.app","splashImageUrl":"https://lava-escape.netlify.app/splash.png","splashBackgroundColor":"#1a1a2e"}}}' />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="🌋 Lava Escape - Jump to Survive!" />
+    <meta property="og:description" content="Help the stickman escape rising lava! Jump between platforms and climb as high as you can in this addictive survival game." />
+    <meta property="og:image" content="https://lava-escape.netlify.app/splash.png" />
+    <meta property="og:url" content="https://lava-escape.netlify.app" />
+    <meta property="og:type" content="website" />
+    
     <style>
         body {
             margin: 0;
@@ -41,6 +51,17 @@
             margin-bottom: 10px;
         }
         
+        .farcaster-info {
+            display: none;
+            text-align: center;
+            color: #00ff88;
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+        }
+        
         canvas {
             border: 2px solid #00ff88;
             border-radius: 5px;
@@ -54,6 +75,38 @@
             color: #fff;
             font-size: 12px;
             margin-top: 10px;
+        }
+        
+        .social-actions {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .social-btn {
+            background: #8a63d2;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .social-btn:hover {
+            background: #7a53c2;
+        }
+        
+        .social-btn.primary {
+            background: #00ff88;
+            color: #000;
+        }
+        
+        .social-btn.primary:hover {
+            background: #00cc6a;
         }
         
         .intro-screen {
@@ -106,12 +159,24 @@
         .danger-btn:hover {
             background: #ff5252;
         }
+
+        .debug-info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+            padding: 5px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <div class="game-header">
             <h2>🌋 LAVA ESCAPE</h2>
+            <div class="farcaster-info" id="farcasterInfo">
+                <span id="userInfo">Playing in Farcaster!</span>
+            </div>
             <div class="stats">
                 <span>Jumps: <span id="jumps">0</span></span>
                 <span>Level: <span id="level">1</span></span>
@@ -123,11 +188,16 @@
         
         <div class="controls">
             🎮 Arrow Keys/WASD • Space/Click to jump • ESCAPE THE LAVA!
-            <div id="debugInfo" style="font-size: 10px; color: #666; margin-top: 5px; display: none;">
+            <div id="debugInfo" class="debug-info" style="display: none;">
                 <div>Environment: <span id="envStatus">Checking...</span></div>
                 <div>SDK Status: <span id="sdkStatus">Loading...</span></div>
-                <div>Context: <span id="contextStatus">Waiting...</span></div>
+                <div>Ready Called: <span id="readyStatus">Not yet</span></div>
             </div>
+        </div>
+        
+        <div class="social-actions" id="socialActions">
+            <button class="social-btn primary" id="shareScore" onclick="shareScore()">📊 Share Score</button>
+            <button class="social-btn" id="addToApp" onclick="addToFarcaster()">➕ Add to App</button>
         </div>
         
         <div class="intro-screen" id="introScreen">
@@ -145,6 +215,172 @@
         </div>
     </div>
 
+    <!-- BULLETPROOF FARCASTER SDK INTEGRATION -->
+    <script type="module">
+        // 🚀 BULLETPROOF FARCASTER INTEGRATION 2025
+        console.log('🎮 Lava Escape - Starting initialization...');
+        
+        // Global state
+        let farcasterSDK = null;
+        let isInFarcaster = false;
+        let readyCalled = false;
+        
+        // Enable debug mode with ?debug=true
+        const showDebug = window.location.search.includes('debug=true');
+        if (showDebug) {
+            document.getElementById('debugInfo').style.display = 'block';
+        }
+        
+        function updateDebugStatus(elementId, status, isSuccess = true) {
+            if (showDebug) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.textContent = status;
+                    el.style.color = isSuccess ? '#00ff88' : '#ff6b6b';
+                }
+            }
+        }
+        
+        // GUARANTEED ready() call - this ensures splash screen is always dismissed
+        function ensureReadyCalled() {
+            if (readyCalled) return;
+            readyCalled = true;
+            
+            console.log('🚀 Calling sdk.actions.ready() - GUARANTEED');
+            updateDebugStatus('readyStatus', 'Called!', true);
+            
+            if (farcasterSDK) {
+                farcasterSDK.actions.ready({
+                    disableNativeGestures: false
+                }).then(() => {
+                    console.log('✅ ready() succeeded');
+                }).catch((error) => {
+                    console.log('⚠️ ready() failed but that\'s OK:', error);
+                });
+            } else {
+                // Fallback: send postMessage to parent
+                try {
+                    window.parent.postMessage({ 
+                        type: 'frame_ready',
+                        timestamp: Date.now()
+                    }, '*');
+                    console.log('📤 Fallback ready message sent');
+                } catch (e) {
+                    console.log('🤷 All ready methods tried');
+                }
+            }
+        }
+        
+        // Simple environment detection
+        function isInFarcasterEnvironment() {
+            const inIframe = window.self !== window.top;
+            const hasPostMessage = typeof window.postMessage === 'function';
+            return inIframe && hasPostMessage;
+        }
+        
+        // Initialize Farcaster SDK with bulletproof ready() guarantee
+        async function initializeFarcaster() {
+            const inFarcasterEnv = isInFarcasterEnvironment();
+            updateDebugStatus('envStatus', inFarcasterEnv ? 'Farcaster WebView' : 'Regular Browser');
+            
+            console.log('📱 Environment:', inFarcasterEnv ? 'Farcaster WebView' : 'Regular Browser');
+            
+            if (inFarcasterEnv) {
+                try {
+                    console.log('🔄 Loading Farcaster SDK...');
+                    updateDebugStatus('sdkStatus', 'Loading SDK...');
+                    
+                    // Try to load SDK
+                    const { sdk } = await import('https://esm.sh/@farcaster/frame-sdk');
+                    farcasterSDK = sdk;
+                    
+                    console.log('✅ SDK loaded successfully');
+                    updateDebugStatus('sdkStatus', 'SDK Loaded ✓');
+                    
+                    // Check if we're in a mini app
+                    isInFarcaster = await sdk.isInMiniApp();
+                    console.log('🎯 Mini app status:', isInFarcaster);
+                    
+                    if (isInFarcaster) {
+                        // Get context
+                        const context = await sdk.context;
+                        console.log('👤 User context:', context);
+                        
+                        // Show Farcaster UI
+                        const farcasterInfo = document.getElementById('farcasterInfo');
+                        const socialActions = document.getElementById('socialActions');
+                        
+                        if (farcasterInfo) farcasterInfo.style.display = 'block';
+                        if (socialActions) socialActions.style.display = 'block';
+                        
+                        // Update user info
+                        if (context?.user) {
+                            const userInfo = document.getElementById('userInfo');
+                            if (userInfo) {
+                                const { user } = context;
+                                userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
+                            }
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.log('⚠️ SDK loading failed:', error);
+                    updateDebugStatus('sdkStatus', 'SDK Failed', false);
+                }
+            }
+            
+            // CRITICAL: Always call ready() after a short delay, regardless of SDK success/failure
+            setTimeout(() => {
+                ensureReadyCalled();
+            }, 1000); // 1 second delay to ensure game UI is ready
+        }
+        
+        // Social sharing functions
+        window.shareScore = async function() {
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('📱 Share feature only available in Farcaster');
+                return;
+            }
+            
+            try {
+                const jumps = window.game?.jumps || 0;
+                const level = window.game?.level || 1;
+                const emoji = jumps >= 50 ? '🏆' : jumps >= 25 ? '🥇' : jumps >= 10 ? '🥈' : '🔥';
+                
+                const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} in Lava Escape! Can you beat my score? 🌋`;
+                const embeds = ['https://lava-escape.netlify.app'];
+                
+                await farcasterSDK.actions.composeCast({
+                    text,
+                    embeds
+                });
+                
+                console.log('✅ Cast composed successfully');
+            } catch (error) {
+                console.error('⚠️ Failed to compose cast:', error);
+            }
+        };
+        
+        window.addToFarcaster = async function() {
+            if (!farcasterSDK || !isInFarcaster) {
+                console.log('📱 Add to app feature only available in Farcaster');
+                return;
+            }
+            
+            try {
+                await farcasterSDK.actions.addMiniApp();
+                console.log('✅ Add to app prompted');
+            } catch (error) {
+                console.error('⚠️ Failed to add to app:', error);
+            }
+        };
+        
+        // Start initialization immediately
+        initializeFarcaster();
+        
+    </script>
+
+    <!-- ORIGINAL GAME CODE - UNCHANGED -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -170,6 +406,9 @@
                 timer: 0
             }
         };
+        
+        // Make game globally accessible for sharing
+        window.game = game;
         
         // Player
         let player = {
@@ -583,6 +822,8 @@
                 }
             };
             
+            window.game = game; // Update global reference
+            
             player = {
                 x: 180,
                 y: 460,
@@ -619,6 +860,8 @@
         // Initialize game
         generateInitialPlatforms();
         gameLoop();
+        
+        console.log('🎮 Game initialized successfully');
     </script>
 </body>
 </html>
