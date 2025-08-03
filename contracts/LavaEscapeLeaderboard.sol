@@ -35,8 +35,9 @@ contract LavaEscapeLeaderboard is Ownable, ReentrancyGuard {
     event ScoreSubmitted(address indexed player, uint256 jumps, uint256 level, bool newPersonalBest, bool madeLeaderboard);
     event LeaderboardUpdated(address indexed player, uint256 jumps, uint256 position);
     
-    constructor() {
+    constructor() Ownable(msg.sender) {
         // Initialize empty leaderboard
+        // Owner is set to contract deployer
     }
     
     /**

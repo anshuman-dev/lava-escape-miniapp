@@ -311,24 +311,35 @@
                 <p>Purchase more lives to continue playing:</p>
                 <div class="lives-options">
                     <button class="btn" onclick="buyLivesWithETH(1)">
-                        1 Life - 0.001 ETH
+                        1 Life - 0.0001 ETH
                     </button>
                     <button class="btn" onclick="buyLivesWithETH(3)">
-                        3 Lives - 0.003 ETH
+                        3 Lives - 0.0003 ETH
                     </button>
                     <button class="btn" onclick="buyLivesWithETH(5)">
-                        5 Lives - 0.005 ETH
+                        5 Lives - 0.0005 ETH
                     </button>
                 </div>
                 <div class="lives-options">
                     <button class="btn" onclick="buyLivesWithUSDC(1)">
-                        1 Life - 3 USDC
+                        1 Life - $0.30 USDC
                     </button>
                     <button class="btn" onclick="buyLivesWithUSDC(3)">
-                        3 Lives - 9 USDC
+                        3 Lives - $0.90 USDC
                     </button>
                     <button class="btn" onclick="buyLivesWithUSDC(5)">
-                        5 Lives - 15 USDC
+                        5 Lives - $1.50 USDC
+                    </button>
+                </div>
+                <div class="lives-options">
+                    <button class="btn" onclick="buyLivesWithBasePay(1)" style="background: #0052FF; border-color: #0052FF;">
+                        💫 1 Life - BasePay ($0.30)
+                    </button>
+                    <button class="btn" onclick="buyLivesWithBasePay(3)" style="background: #0052FF; border-color: #0052FF;">
+                        💫 3 Lives - BasePay ($0.90)
+                    </button>
+                    <button class="btn" onclick="buyLivesWithBasePay(5)" style="background: #0052FF; border-color: #0052FF;">
+                        💫 5 Lives - BasePay ($1.50)
                     </button>
                 </div>
                 <button class="btn danger-btn" onclick="closeBuyLivesModal()">
@@ -502,6 +513,7 @@
         import { createConfig, http, getAccount, readContract, writeContract, waitForTransactionReceipt } from 'https://esm.sh/@wagmi/core';
         import { base } from 'https://esm.sh/wagmi/chains';
         import { createPublicClient } from 'https://esm.sh/viem';
+        import { pay } from 'https://esm.sh/@base-org/account';
         
         // Smart contract addresses (will be updated after deployment)
         const CONTRACTS = {
@@ -1334,6 +1346,43 @@
             } catch (error) {
                 console.error('USDC Purchase failed:', error);
                 statusEl.innerHTML = '❌ Purchase failed. Check console for details.';
+            }
+        }
+
+        // BasePay integration for fast USDC payments
+        async function buyLivesWithBasePay(amount) {
+            const statusEl = document.getElementById('purchaseStatus');
+            statusEl.innerHTML = '⚡ Processing BasePay payment...';
+            
+            try {
+                // Calculate USD amount (0.30 per life)
+                const usdAmount = (amount * 0.3).toFixed(2);
+                
+                // Trigger BasePay payment
+                const payment = await pay({
+                    amount: usdAmount,
+                    to: '0x0000000000000000000000000000000000000000', // TODO: Replace with contract owner address
+                    testnet: true // Set to false for mainnet
+                });
+                
+                statusEl.innerHTML = `⏳ Payment initiated. ID: ${payment.id}`;
+                
+                // TODO: After payment confirms, call smart contract to grant lives
+                // For now, simulate success
+                setTimeout(() => {
+                    if (window.blockchain) {
+                        window.blockchain.userLives += amount;
+                        updateLivesDisplay();
+                        statusEl.innerHTML = `✅ ${amount} lives purchased with BasePay!`;
+                        setTimeout(() => {
+                            closeBuyLivesModal();
+                        }, 2000);
+                    }
+                }, 3000);
+                
+            } catch (error) {
+                console.error('BasePay purchase failed:', error);
+                statusEl.innerHTML = '❌ BasePay purchase failed. Try again.';
             }
         }
         

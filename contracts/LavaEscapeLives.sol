@@ -32,8 +32,9 @@ contract LavaEscapeLives is Ownable, ReentrancyGuard {
     event LivesGranted(address indexed player, uint8 amount);
     event FundsWithdrawn(address indexed owner, uint256 ethAmount, uint256 usdcAmount);
     
-    constructor() {
-        // Owner can be set to a multisig later
+    constructor() Ownable(msg.sender) {
+        // Owner is set to contract deployer
+        // Can be transferred to a multisig later
     }
     
     /**
