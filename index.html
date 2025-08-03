@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lava Escape</title>
     
-    <!-- Farcaster Meta Tags for Embedding - Updated for 2025 -->
-    <meta name="fc:frame" content='{"version":"next","imageUrl":"https://lava-escape.netlify.app/splash.png","button":{"title":"🌋 Escape the Lava","action":{"type":"launch_frame","name":"Lava Escape","url":"https://lava-escape.netlify.app","splashImageUrl":"https://lava-escape.netlify.app/splash.png","splashBackgroundColor":"#1a1a2e"}}}' />
+    <!-- Farcaster Mini App Meta Tags - 2025 -->
+    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://lava-escape.netlify.app/splash.png","button":{"title":"🌋 Escape the Lava","action":{"type":"launch_frame","name":"🌋 Lava Escape","url":"https://lava-escape.netlify.app","splashImageUrl":"https://lava-escape.netlify.app/splash.png","splashBackgroundColor":"#1a1a2e"}}}' />
+    <!-- Backward compatibility -->
+    <meta name="fc:frame" content='{"version":"1","imageUrl":"https://lava-escape.netlify.app/splash.png","button":{"title":"🌋 Escape the Lava","action":{"type":"launch_frame","name":"🌋 Lava Escape","url":"https://lava-escape.netlify.app","splashImageUrl":"https://lava-escape.netlify.app/splash.png","splashBackgroundColor":"#1a1a2e"}}}' />
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="🌋 Lava Escape - Jump to Survive!" />
-    <meta property="og:description" content="Help the stickman escape rising lava! Jump between platforms and climb as high as you can in this addictive survival game." />
+    <meta property="og:description" content="Help the stickman escape rising lava! Jump between platforms with onchain lives and compete on the Base L2 leaderboard." />
     <meta property="og:image" content="https://lava-escape.netlify.app/splash.png" />
     <meta property="og:url" content="https://lava-escape.netlify.app" />
     <meta property="og:type" content="website" />
@@ -168,6 +170,93 @@
             background: rgba(0,0,0,0.3);
             border-radius: 3px;
         }
+        
+        .buy-lives-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: #1a1a2e;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff88;
+            text-align: center;
+            color: #fff;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .lives-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .lives-options .btn {
+            font-size: 10px;
+            padding: 8px 12px;
+            margin: 0;
+        }
+        
+        .leaderboard-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .leaderboard-modal .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .leaderboard-entry:nth-child(1) { background: rgba(255, 215, 0, 0.3); } /* Gold */
+        .leaderboard-entry:nth-child(2) { background: rgba(192, 192, 192, 0.3); } /* Silver */
+        .leaderboard-entry:nth-child(3) { background: rgba(205, 127, 50, 0.3); } /* Bronze */
+        
+        .player-rank {
+            font-weight: bold;
+            width: 30px;
+        }
+        
+        .player-address {
+            font-family: monospace;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        
+        .player-score {
+            font-weight: bold;
+            color: #00ff88;
+        }
     </style>
 </head>
 <body>
@@ -178,6 +267,7 @@
                 <span id="userInfo">Playing in Farcaster!</span>
             </div>
             <div class="stats">
+                <span>❤️ Lives: <span id="lives">3</span></span>
                 <span>Jumps: <span id="jumps">0</span></span>
                 <span>Level: <span id="level">1</span></span>
                 <span>Speed: <span id="speed">1.0x</span></span>
@@ -198,6 +288,7 @@
         <div class="social-actions" id="socialActions">
             <button class="social-btn primary" id="shareScore" onclick="shareScore()">📊 Share Score</button>
             <button class="social-btn" id="addToApp" onclick="addToFarcaster()">➕ Add to App</button>
+            <button class="social-btn" id="showLeaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
         </div>
         
         <div class="intro-screen" id="introScreen">
@@ -213,17 +304,63 @@
             <p>Level Reached: <span id="finalLevel">1</span></p>
             <button class="btn" onclick="restartGame()">🔄 Try Again</button>
         </div>
+        
+        <div class="buy-lives-modal" id="buyLivesModal" style="display: none;">
+            <div class="modal-content">
+                <h3>💀 Out of Lives!</h3>
+                <p>Purchase more lives to continue playing:</p>
+                <div class="lives-options">
+                    <button class="btn" onclick="buyLivesWithETH(1)">
+                        1 Life - 0.001 ETH
+                    </button>
+                    <button class="btn" onclick="buyLivesWithETH(3)">
+                        3 Lives - 0.003 ETH
+                    </button>
+                    <button class="btn" onclick="buyLivesWithETH(5)">
+                        5 Lives - 0.005 ETH
+                    </button>
+                </div>
+                <div class="lives-options">
+                    <button class="btn" onclick="buyLivesWithUSDC(1)">
+                        1 Life - 3 USDC
+                    </button>
+                    <button class="btn" onclick="buyLivesWithUSDC(3)">
+                        3 Lives - 9 USDC
+                    </button>
+                    <button class="btn" onclick="buyLivesWithUSDC(5)">
+                        5 Lives - 15 USDC
+                    </button>
+                </div>
+                <button class="btn danger-btn" onclick="closeBuyLivesModal()">
+                    ❌ No Thanks
+                </button>
+                <div id="purchaseStatus" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+        
+        <div class="leaderboard-modal" id="leaderboardModal" style="display: none;">
+            <div class="modal-content">
+                <h3>🏆 Leaderboard</h3>
+                <div id="leaderboardContent">
+                    <p>Loading leaderboard...</p>
+                </div>
+                <button class="btn" onclick="closeLeaderboard()">Close</button>
+            </div>
+        </div>
     </div>
 
-    <!-- BULLETPROOF FARCASTER SDK INTEGRATION -->
+    <!-- FARCASTER MINIAPP SDK INTEGRATION -->
     <script type="module">
-        // 🚀 BULLETPROOF FARCASTER INTEGRATION 2025
-        console.log('🎮 Lava Escape - Starting initialization...');
+        // 🚀 FARCASTER MINIAPP SDK INTEGRATION 2025
+        console.log('🎮 Lava Escape - Starting MiniApp initialization...');
+        
+        // Import MiniApp SDK
+        import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
         
         // Global state
-        let farcasterSDK = null;
-        let isInFarcaster = false;
+        let isInMiniApp = false;
         let readyCalled = false;
+        let userContext = null;
         
         // Enable debug mode with ?debug=true
         const showDebug = window.location.search.includes('debug=true');
@@ -241,116 +378,88 @@
             }
         }
         
-        // GUARANTEED ready() call - this ensures splash screen is always dismissed
-        function ensureReadyCalled() {
+        // Initialize MiniApp SDK
+        async function initializeMiniApp() {
+            try {
+                console.log('🔄 Initializing MiniApp SDK...');
+                updateDebugStatus('sdkStatus', 'Loading MiniApp SDK...');
+                
+                // Check if we're in a mini app environment
+                isInMiniApp = await sdk.isInMiniApp();
+                console.log('🎯 Mini app status:', isInMiniApp);
+                updateDebugStatus('envStatus', isInMiniApp ? 'Farcaster MiniApp' : 'Regular Browser');
+                
+                if (isInMiniApp) {
+                    // Get user context
+                    userContext = await sdk.context;
+                    console.log('👤 User context:', userContext);
+                    updateDebugStatus('sdkStatus', 'MiniApp SDK Ready ✓');
+                    
+                    // Show Farcaster UI elements
+                    const farcasterInfo = document.getElementById('farcasterInfo');
+                    const socialActions = document.getElementById('socialActions');
+                    
+                    if (farcasterInfo) farcasterInfo.style.display = 'block';
+                    if (socialActions) socialActions.style.display = 'block';
+                    
+                    // Update user info display
+                    if (userContext?.user) {
+                        const userInfo = document.getElementById('userInfo');
+                        if (userInfo) {
+                            const { user } = userContext;
+                            userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
+                        }
+                    }
+                } else {
+                    updateDebugStatus('sdkStatus', 'Browser Mode');
+                }
+                
+                // Call ready() to dismiss splash screen
+                await ensureReadyCalled();
+                
+            } catch (error) {
+                console.error('⚠️ MiniApp SDK initialization failed:', error);
+                updateDebugStatus('sdkStatus', 'SDK Failed', false);
+                // Still call ready() even if initialization fails
+                await ensureReadyCalled();
+            }
+        }
+        
+        // GUARANTEED ready() call
+        async function ensureReadyCalled() {
             if (readyCalled) return;
             readyCalled = true;
             
-            console.log('🚀 Calling sdk.actions.ready() - GUARANTEED');
+            console.log('🚀 Calling sdk.actions.ready()');
             updateDebugStatus('readyStatus', 'Called!', true);
             
-            if (farcasterSDK) {
-                farcasterSDK.actions.ready({
+            try {
+                await sdk.actions.ready({
                     disableNativeGestures: false
-                }).then(() => {
-                    console.log('✅ ready() succeeded');
-                }).catch((error) => {
-                    console.log('⚠️ ready() failed but that\'s OK:', error);
                 });
-            } else {
-                // Fallback: send postMessage to parent
-                try {
-                    window.parent.postMessage({ 
-                        type: 'frame_ready',
-                        timestamp: Date.now()
-                    }, '*');
-                    console.log('📤 Fallback ready message sent');
-                } catch (e) {
-                    console.log('🤷 All ready methods tried');
-                }
+                console.log('✅ ready() succeeded');
+            } catch (error) {
+                console.log('⚠️ ready() failed but that\'s OK:', error);
             }
-        }
-        
-        // Simple environment detection
-        function isInFarcasterEnvironment() {
-            const inIframe = window.self !== window.top;
-            const hasPostMessage = typeof window.postMessage === 'function';
-            return inIframe && hasPostMessage;
-        }
-        
-        // Initialize Farcaster SDK with bulletproof ready() guarantee
-        async function initializeFarcaster() {
-            const inFarcasterEnv = isInFarcasterEnvironment();
-            updateDebugStatus('envStatus', inFarcasterEnv ? 'Farcaster WebView' : 'Regular Browser');
-            
-            console.log('📱 Environment:', inFarcasterEnv ? 'Farcaster WebView' : 'Regular Browser');
-            
-            if (inFarcasterEnv) {
-                try {
-                    console.log('🔄 Loading Farcaster SDK...');
-                    updateDebugStatus('sdkStatus', 'Loading SDK...');
-                    
-                    // Try to load SDK
-                    const { sdk } = await import('https://esm.sh/@farcaster/frame-sdk');
-                    farcasterSDK = sdk;
-                    
-                    console.log('✅ SDK loaded successfully');
-                    updateDebugStatus('sdkStatus', 'SDK Loaded ✓');
-                    
-                    // Check if we're in a mini app
-                    isInFarcaster = await sdk.isInMiniApp();
-                    console.log('🎯 Mini app status:', isInFarcaster);
-                    
-                    if (isInFarcaster) {
-                        // Get context
-                        const context = await sdk.context;
-                        console.log('👤 User context:', context);
-                        
-                        // Show Farcaster UI
-                        const farcasterInfo = document.getElementById('farcasterInfo');
-                        const socialActions = document.getElementById('socialActions');
-                        
-                        if (farcasterInfo) farcasterInfo.style.display = 'block';
-                        if (socialActions) socialActions.style.display = 'block';
-                        
-                        // Update user info
-                        if (context?.user) {
-                            const userInfo = document.getElementById('userInfo');
-                            if (userInfo) {
-                                const { user } = context;
-                                userInfo.textContent = `Hey ${user.displayName || user.username || `FID ${user.fid}`}! 👋`;
-                            }
-                        }
-                    }
-                    
-                } catch (error) {
-                    console.log('⚠️ SDK loading failed:', error);
-                    updateDebugStatus('sdkStatus', 'SDK Failed', false);
-                }
-            }
-            
-            // CRITICAL: Always call ready() after a short delay, regardless of SDK success/failure
-            setTimeout(() => {
-                ensureReadyCalled();
-            }, 1000); // 1 second delay to ensure game UI is ready
         }
         
         // Social sharing functions
         window.shareScore = async function() {
-            if (!farcasterSDK || !isInFarcaster) {
-                console.log('📱 Share feature only available in Farcaster');
+            if (!isInMiniApp) {
+                console.log('📱 Share feature only available in MiniApp');
                 return;
             }
             
             try {
                 const jumps = window.game?.jumps || 0;
                 const level = window.game?.level || 1;
+                const lives = window.gameState?.lives || 0;
                 const emoji = jumps >= 50 ? '🏆' : jumps >= 25 ? '🥇' : jumps >= 10 ? '🥈' : '🔥';
                 
-                const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} in Lava Escape! Can you beat my score? 🌋`;
+                const text = `${emoji} Just escaped lava for ${jumps} jumps and reached level ${level} with ${lives} lives remaining! Can you beat my onchain score? 🌋⛓️`;
                 const embeds = ['https://lava-escape.netlify.app'];
                 
-                await farcasterSDK.actions.composeCast({
+                await sdk.actions.composeCast({
                     text,
                     embeds
                 });
@@ -362,21 +471,306 @@
         };
         
         window.addToFarcaster = async function() {
-            if (!farcasterSDK || !isInFarcaster) {
-                console.log('📱 Add to app feature only available in Farcaster');
+            if (!isInMiniApp) {
+                console.log('📱 Add to app feature only available in MiniApp');
                 return;
             }
             
             try {
-                await farcasterSDK.actions.addMiniApp();
+                await sdk.actions.addMiniApp();
                 console.log('✅ Add to app prompted');
             } catch (error) {
                 console.error('⚠️ Failed to add to app:', error);
             }
         };
         
-        // Start initialization immediately
-        initializeFarcaster();
+        // Make SDK available globally for wallet integration
+        window.farcasterSDK = sdk;
+        window.userContext = userContext;
+        
+        // Start initialization
+        initializeMiniApp();
+        
+    </script>
+
+    <!-- BASE L2 BLOCKCHAIN INTEGRATION -->
+    <script type="module">
+        // 🔗 BASE L2 BLOCKCHAIN INTEGRATION
+        console.log('⛓️ Initializing Base L2 integration...');
+        
+        // Import wagmi and viem
+        import { createConfig, http, getAccount, readContract, writeContract, waitForTransactionReceipt } from 'https://esm.sh/@wagmi/core';
+        import { base } from 'https://esm.sh/wagmi/chains';
+        import { createPublicClient } from 'https://esm.sh/viem';
+        
+        // Smart contract addresses (will be updated after deployment)
+        const CONTRACTS = {
+            LIVES: '0x0000000000000000000000000000000000000000', // Placeholder
+            LEADERBOARD: '0x0000000000000000000000000000000000000000', // Placeholder
+            USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC
+        };
+        
+        // Contract ABIs (simplified for essential functions)
+        const LIVES_ABI = [
+            {
+                "inputs": [{"name": "amount", "type": "uint8"}],
+                "name": "buyLives",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"name": "player", "type": "address"}],
+                "name": "getLives",
+                "outputs": [{"name": "", "type": "uint8"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"name": "player", "type": "address"}],
+                "name": "useLive",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+        
+        const LEADERBOARD_ABI = [
+            {
+                "inputs": [{"name": "jumps", "type": "uint256"}],
+                "name": "submitScore",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getLeaderboard",
+                "outputs": [{"components": [{"name": "player", "type": "address"}, {"name": "jumps", "type": "uint256"}, {"name": "timestamp", "type": "uint256"}], "name": "", "type": "tuple[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        // Configure wagmi for Base L2
+        const config = createConfig({
+            chains: [base],
+            transports: {
+                [base.id]: http(),
+            },
+        });
+        
+        // Global blockchain state
+        let ethereumProvider = null;
+        let userAddress = null;
+        let userLives = 3; // Default lives
+        
+        // Initialize blockchain functionality
+        async function initializeBlockchain() {
+            try {
+                // Get Ethereum provider from Farcaster SDK
+                if (window.farcasterSDK && isInMiniApp) {
+                    ethereumProvider = await window.farcasterSDK.wallet.getEthereumProvider();
+                    console.log('🔗 Ethereum provider obtained from Farcaster');
+                    
+                    // Get user address
+                    const accounts = await ethereumProvider.request({
+                        method: 'eth_accounts'
+                    });
+                    
+                    if (accounts && accounts.length > 0) {
+                        userAddress = accounts[0];
+                        console.log('👛 User address:', userAddress);
+                        
+                        // Load user's lives from contract
+                        await loadUserLives();
+                    }
+                } else {
+                    console.log('🌐 No Farcaster wallet available, using browser mode');
+                }
+            } catch (error) {
+                console.error('⚠️ Blockchain initialization failed:', error);
+            }
+        }
+        
+        // Load user's lives from smart contract
+        async function loadUserLives() {
+            if (!userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+                console.log('📝 Contract not deployed yet, using default lives');
+                return;
+            }
+            
+            try {
+                const lives = await readContract(config, {
+                    address: CONTRACTS.LIVES,
+                    abi: LIVES_ABI,
+                    functionName: 'getLives',
+                    args: [userAddress],
+                });
+                
+                userLives = parseInt(lives.toString());
+                console.log('❤️ User lives loaded:', userLives);
+                updateLivesDisplay();
+            } catch (error) {
+                console.error('⚠️ Failed to load lives:', error);
+                userLives = 3; // Default fallback
+            }
+        }
+        
+        // Buy lives with ETH
+        async function buyLives(amount = 1) {
+            if (!ethereumProvider || !userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+                console.log('⚠️ Blockchain not available for purchase');
+                return false;
+            }
+            
+            try {
+                const pricePerLife = '100000000000000'; // 0.0001 ETH in wei
+                const totalPrice = (BigInt(pricePerLife) * BigInt(amount)).toString();
+                
+                const hash = await writeContract(config, {
+                    address: CONTRACTS.LIVES,
+                    abi: LIVES_ABI,
+                    functionName: 'buyLives',
+                    args: [amount],
+                    value: totalPrice,
+                });
+                
+                console.log('⏳ Transaction submitted:', hash);
+                
+                // Wait for confirmation
+                await waitForTransactionReceipt(config, { hash });
+                
+                console.log('✅ Lives purchased successfully!');
+                await loadUserLives(); // Refresh lives count
+                return true;
+            } catch (error) {
+                console.error('⚠️ Failed to buy lives:', error);
+                
+                // Show user-friendly error message
+                let errorMessage = 'Failed to purchase lives. ';
+                if (error.message?.includes('insufficient funds')) {
+                    errorMessage += 'Insufficient ETH balance.';
+                } else if (error.message?.includes('user rejected')) {
+                    errorMessage += 'Transaction was cancelled.';
+                } else if (error.message?.includes('Would exceed max lives')) {
+                    errorMessage += 'Would exceed maximum lives (255).';
+                } else {
+                    errorMessage += 'Please try again.';
+                }
+                
+                alert(errorMessage);
+                return false;
+            }
+        }
+        
+        // Use a life (called when game over)
+        async function useLive() {
+            if (!ethereumProvider || !userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+                // Offline mode - just decrement locally
+                if (userLives > 0) {
+                    userLives--;
+                    updateLivesDisplay();
+                    return true;
+                }
+                return false;
+            }
+            
+            try {
+                const hash = await writeContract(config, {
+                    address: CONTRACTS.LIVES,
+                    abi: LIVES_ABI,
+                    functionName: 'useLive',
+                    args: [userAddress],
+                });
+                
+                await waitForTransactionReceipt(config, { hash });
+                await loadUserLives(); // Refresh lives count
+                return true;
+            } catch (error) {
+                console.error('⚠️ Failed to use life:', error);
+                // Fallback to local decrement
+                if (userLives > 0) {
+                    userLives--;
+                    updateLivesDisplay();
+                    return true;
+                }
+                return false;
+            }
+        }
+        
+        // Submit score to leaderboard
+        async function submitScore(jumps, level) {
+            if (!ethereumProvider || !userAddress || CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
+                console.log('📊 Leaderboard contract not available');
+                return false;
+            }
+            
+            try {
+                const hash = await writeContract(config, {
+                    address: CONTRACTS.LEADERBOARD,
+                    abi: LEADERBOARD_ABI,
+                    functionName: 'submitScore',
+                    args: [jumps, level || 1],
+                });
+                
+                await waitForTransactionReceipt(config, { hash });
+                console.log('✅ Score submitted to leaderboard!');
+                return true;
+            } catch (error) {
+                console.error('⚠️ Failed to submit score:', error);
+                return false;
+            }
+        }
+        
+        // Get leaderboard data
+        async function getLeaderboard() {
+            if (CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
+                // Return mock data for testing
+                return [
+                    { player: '0x1234...5678', jumps: 125, timestamp: Date.now(), level: 8 },
+                    { player: '0x9876...4321', jumps: 98, timestamp: Date.now(), level: 6 },
+                    { player: '0xabcd...ef01', jumps: 87, timestamp: Date.now(), level: 5 }
+                ];
+            }
+            
+            try {
+                const leaderboard = await readContract(config, {
+                    address: CONTRACTS.LEADERBOARD,
+                    abi: LEADERBOARD_ABI,
+                    functionName: 'getLeaderboard',
+                });
+                
+                return leaderboard;
+            } catch (error) {
+                console.error('⚠️ Failed to get leaderboard:', error);
+                return [];
+            }
+        }
+        
+        // Update lives display in UI
+        function updateLivesDisplay() {
+            const livesElement = document.getElementById('lives');
+            if (livesElement) {
+                livesElement.textContent = userLives;
+            }
+        }
+        
+        // Make functions globally available
+        window.blockchain = {
+            initializeBlockchain,
+            loadUserLives,
+            buyLives,
+            useLive,
+            submitScore,
+            getLeaderboard,
+            getUserLives: () => userLives,
+            getUserAddress: () => userAddress,
+            isWalletConnected: () => !!userAddress
+        };
+        
+        // Initialize after a short delay to ensure Farcaster SDK is ready
+        setTimeout(initializeBlockchain, 2000);
         
     </script>
 
@@ -451,10 +845,19 @@
         }
         
         function startGame() {
+            // Check if player can start
+            if (!canStartGame()) {
+                document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
+                document.getElementById('continueBtn').textContent = "Buy Lives";
+                document.getElementById('continueBtn').onclick = showBuyLivesModal;
+                return;
+            }
+            
             document.getElementById('introScreen').style.display = 'none';
             game.running = true;
             game.gameStarted = true;
             generateInitialPlatforms();
+            initializeLivesDisplay();
         }
         
         function generateInitialPlatforms() {
@@ -780,24 +1183,54 @@
             document.getElementById('speed').textContent = game.lavaSpeed.toFixed(1) + 'x';
         }
         
-        function gameOver() {
+        async function gameOver() {
             game.running = false;
             game.dyingState = false;
             
-            if (game.deathReason === "fell") {
-                document.getElementById('gameOverTitle').textContent = "💀 FELL INTO LAVA!";
-                document.getElementById('gameOverMessage').textContent = "You fell back into the lava pit!";
-            } else if (game.deathReason === "offscreen") {
-                document.getElementById('gameOverTitle').textContent = "💀 FELL FROM HEIGHT!";
-                document.getElementById('gameOverMessage').textContent = "You fell too far and couldn't recover!";
-            } else {
-                document.getElementById('gameOverTitle').textContent = "🔥 BURNED BY LAVA!";
-                document.getElementById('gameOverMessage').textContent = "The lava caught up to you!";
+            // Use a life
+            let canContinue = false;
+            if (window.blockchain) {
+                canContinue = await window.blockchain.useLive();
             }
             
-            document.getElementById('finalJumps').textContent = game.jumps;
-            document.getElementById('finalLevel').textContent = game.level;
-            document.getElementById('gameOver').style.display = 'block';
+            if (!canContinue) {
+                // No lives left - show game over
+                if (game.deathReason === "fell") {
+                    document.getElementById('gameOverTitle').textContent = "💀 NO LIVES LEFT!";
+                    document.getElementById('gameOverMessage').textContent = "You fell into lava and ran out of lives!";
+                } else if (game.deathReason === "offscreen") {
+                    document.getElementById('gameOverTitle').textContent = "💀 NO LIVES LEFT!";
+                    document.getElementById('gameOverMessage').textContent = "You fell too far and ran out of lives!";
+                } else {
+                    document.getElementById('gameOverTitle').textContent = "🔥 NO LIVES LEFT!";
+                    document.getElementById('gameOverMessage').textContent = "The lava caught you and you're out of lives!";
+                }
+                
+                document.getElementById('finalJumps').textContent = game.jumps;
+                document.getElementById('finalLevel').textContent = game.level;
+                
+                // Try to submit score to leaderboard
+                if (window.blockchain && game.jumps >= 5) {
+                    try {
+                        await window.blockchain.submitScore(game.jumps, game.level);
+                    } catch (error) {
+                        console.log('Failed to submit score:', error);
+                    }
+                }
+                
+                document.getElementById('gameOver').style.display = 'block';
+                
+                // Show buy lives option if user has wallet connected
+                if (window.blockchain && window.blockchain.isWalletConnected()) {
+                    showBuyLivesModal();
+                }
+            } else {
+                // Still have lives - quick restart
+                console.log('❤️ Life used, restarting quickly...');
+                setTimeout(() => {
+                    restartGame();
+                }, 1000);
+            }
         }
         
         function restartGame() {
@@ -860,6 +1293,121 @@
         // Initialize game
         generateInitialPlatforms();
         gameLoop();
+        
+        // Buy Lives Modal Functions
+        function showBuyLivesModal() {
+            document.getElementById('buyLivesModal').style.display = 'flex';
+        }
+        
+        function closeBuyLivesModal() {
+            document.getElementById('buyLivesModal').style.display = 'none';
+        }
+        
+        async function buyLivesWithETH(amount) {
+            const statusEl = document.getElementById('purchaseStatus');
+            statusEl.innerHTML = '⏳ Processing ETH purchase...';
+            
+            try {
+                const success = await window.blockchain.buyLives(amount);
+                if (success) {
+                    statusEl.innerHTML = '✅ Lives purchased! Restarting game...';
+                    setTimeout(() => {
+                        closeBuyLivesModal();
+                        restartGame();
+                    }, 2000);
+                } else {
+                    statusEl.innerHTML = '❌ Purchase failed. Please try again.';
+                }
+            } catch (error) {
+                console.error('Purchase failed:', error);
+                statusEl.innerHTML = '❌ Purchase failed. Check console for details.';
+            }
+        }
+        
+        async function buyLivesWithUSDC(amount) {
+            const statusEl = document.getElementById('purchaseStatus');
+            statusEl.innerHTML = '⏳ Processing USDC purchase...';
+            
+            try {
+                // This would need USDC approval first in a real implementation
+                statusEl.innerHTML = '❌ USDC purchases not yet implemented.';
+            } catch (error) {
+                console.error('USDC Purchase failed:', error);
+                statusEl.innerHTML = '❌ Purchase failed. Check console for details.';
+            }
+        }
+        
+        // Initialize lives display when game starts
+        function initializeLivesDisplay() {
+            if (window.blockchain) {
+                const lives = window.blockchain.getUserLives();
+                const livesEl = document.getElementById('lives');
+                if (livesEl) {
+                    livesEl.textContent = lives;
+                }
+            }
+        }
+        
+        // Check if player can start game
+        function canStartGame() {
+            if (!window.blockchain) {
+                return true; // Browser mode - always allow
+            }
+            
+            const lives = window.blockchain.getUserLives();
+            return lives > 0;
+        }
+        
+        // Leaderboard Functions
+        async function showLeaderboard() {
+            const modal = document.getElementById('leaderboardModal');
+            const content = document.getElementById('leaderboardContent');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<p>Loading leaderboard...</p>';
+            
+            try {
+                const leaderboard = await window.blockchain.getLeaderboard();
+                
+                if (leaderboard.length === 0) {
+                    content.innerHTML = '<p>No scores yet. Be the first to set a record!</p>';
+                    return;
+                }
+                
+                let html = '';
+                leaderboard.forEach((entry, index) => {
+                    const rank = index + 1;
+                    const address = typeof entry.player === 'string' ? 
+                        entry.player.slice(0, 6) + '...' + entry.player.slice(-4) :
+                        'Unknown';
+                    const jumps = parseInt(entry.jumps);
+                    const level = parseInt(entry.level || 1);
+                    
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
+                    
+                    html += `
+                        <div class="leaderboard-entry">
+                            <span class="player-rank">${medal} ${rank}</span>
+                            <div>
+                                <div class="player-address">${address}</div>
+                                <div>Level ${level}</div>
+                            </div>
+                            <span class="player-score">${jumps} jumps</span>
+                        </div>
+                    `;
+                });
+                
+                content.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Failed to load leaderboard:', error);
+                content.innerHTML = '<p>Failed to load leaderboard. Try again later.</p>';
+            }
+        }
+        
+        function closeLeaderboard() {
+            document.getElementById('leaderboardModal').style.display = 'none';
+        }
         
         console.log('🎮 Game initialized successfully');
     </script>

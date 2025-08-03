@@ -1,0 +1,35 @@
+{
+  "name": "lava-escape-miniapp",
+  "version": "1.0.0",
+  "description": "Onchain Lava Escape game - Farcaster Mini App on Base L2",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server . -p 3000 -c-1",
+    "build": "echo 'Static build - no build process needed'",
+    "deploy": "netlify deploy --prod",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "farcaster",
+    "miniapp",
+    "game",
+    "onchain",
+    "base-l2",
+    "web3"
+  ],
+  "author": "Lava Escape Team",
+  "license": "MIT",
+  "dependencies": {
+    "@farcaster/miniapp-sdk": "^0.1.0",
+    "wagmi": "^2.12.0",
+    "viem": "^2.21.0",
+    "@wagmi/core": "^2.13.0",
+    "@wagmi/connectors": "^5.1.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=22.11.0"
+  }
+}

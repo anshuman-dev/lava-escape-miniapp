@@ -5,29 +5,18 @@
     "signature": "MHgyMzFjYzgxZmI0NzU0Mjc0MjIwZjE5NzYzMWQyZTJiMTVkOTNkODhkMmY1YTU4ZjA5MTJmNjE1ZWNhZWM0MzA0NGU1MjhhM2U1ODc0ZDNlMDI5YjE1N2MwMDFmMjBkZDIwMzQyODhjOTk4NjliMmE1NjE5NWY4MmRjNmU2NjFkOTFi"
   }
 ,
-  "frame": {
+  "miniapp": {
     "version": "1",
-    "name": "Lava Escape",
+    "name": "🌋 Lava Escape",
     "iconUrl": "https://lava-escape.netlify.app/icon.png",
-    "homeUrl": "https://lava-escape.netlify.app",
+    "homeUrl": "https://lava-escape.netlify.app/",
     "imageUrl": "https://lava-escape.netlify.app/splash.png",
-    "buttonTitle": "🌋 Lava Escape!",
-    "splashImageUrl": "https://lava-escape.netlify.app/icon.png",
+    "buttonTitle": "🌋 Escape the Lava",
+    "splashImageUrl": "https://lava-escape.netlify.app/splash.png",
     "splashBackgroundColor": "#1a1a2e",
-    "subtitle": "Jump to survive!",
-    "description": "Help the stickman escape rising lava!",
-    "screenshotUrls": [
-      "https://lava-escape.netlify.app/splash.png"
-    ],
-    "primaryCategory": "games",
-    "tags": [
-      "games",
-      "entertainment"
-    ],
-    "heroImageUrl": "https://lava-escape.netlify.app/splash.png",
-    "tagline": "Jump to survive!",
-    "ogTitle": "Lava Escape - Jump to Survive!",
-    "ogDescription": "Help the stickman escape rising lava!",
-    "ogImageUrl": "https://lava-escape.netlify.app/splash.png"
+    "description": "Help the stickman escape rising lava! Jump between platforms and climb as high as you can. Now with onchain lives and leaderboards on Base L2!",
+    "categories": ["games"],
+    "requiredChains": ["eip155:8453"],
+    "requiredCapabilities": ["eth_sendTransaction", "eth_signTypedData_v4"]
   }
 }
