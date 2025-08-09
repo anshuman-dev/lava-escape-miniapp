@@ -865,13 +865,6 @@
         ];
         
         function nextIntroStep() {
-            // If user has lives and game isn't running, skip intro and start directly
-            if (canStartGame() && !game.running && game.gameStarted === false) {
-                console.log('🎮 User has lives, skipping intro and starting game directly');
-                startGameDirectly();
-                return;
-            }
-            
             game.introStep++;
             
             if (game.introStep < introMessages.length) {
@@ -907,11 +900,6 @@
             document.getElementById('introScreen').style.display = 'none';
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('buyLivesModal').style.display = 'none';
-            
-            // Reset continue button to normal state
-            document.getElementById('continueBtn').textContent = "Continue";
-            document.getElementById('continueBtn').className = "btn";
-            document.getElementById('continueBtn').onclick = nextIntroStep;
             
             // Reset game state
             game = {
