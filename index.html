@@ -1445,36 +1445,39 @@
                 
                 statusEl.innerHTML = '⏳ Opening Farcaster payment dialog...';
                 
-                // Use Farcaster's native sendToken action for seamless payment
-                let result;
-                try {
-                    // First try Base Mainnet USDC (Farcaster might not support testnet)
-                    result = await window.farcasterSDK.actions.sendToken({
-                        token: `eip155:8453/erc20:${window.PRICING.USDC_MAINNET}`, // Base Mainnet USDC
-                        amount: totalUsdcAmount,
-                        recipientAddress: window.CONTRACTS.LIVES
-                    });
-                } catch (mainnetError) {
-                    console.log('⚠️ Mainnet USDC failed, trying testnet format:', mainnetError);
-                    // Fallback to testnet format
-                    result = await window.farcasterSDK.actions.sendToken({
-                        token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // Base Sepolia USDC
-                        amount: totalUsdcAmount,
-                        recipientAddress: window.CONTRACTS.LIVES
-                    });
-                }
+                // Use Farcaster's native sendToken action for seamless payment  
+                // WARNING: Using testnet format only to prevent mainnet transactions
+                const result = await window.farcasterSDK.actions.sendToken({
+                    token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // Base Sepolia USDC only
+                    amount: totalUsdcAmount,
+                    recipientAddress: window.CONTRACTS.LIVES
+                });
                 
                 console.log('📤 SendToken result:', result);
                 
                 // Handle the actual response structure safely
-                if (result && result.transactionId) {
+                if (result && result.success) {
+                    // Payment was successful - credit lives immediately
+                    statusEl.innerHTML = `✅ USDC payment successful!`;
+                    
+                    if (window.blockchain) {
+                        window.blockchain.userLives += livesToPurchase;
+                        updateLivesDisplay();
+                        statusEl.innerHTML = `✅ ${livesToPurchase} ${livesToPurchase === 1 ? 'life' : 'lives'} added! Game restarting...`;
+                        
+                        setTimeout(() => {
+                            closeBuyLivesModal();
+                            restartGame();
+                        }, 2000);
+                    }
+                } else if (result && result.transactionId) {
                     statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.transactionId.slice(0, 10)}...`;
                 } else if (result && result.txHash) {
                     statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.txHash.slice(0, 10)}...`;
                 } else if (result) {
-                    statusEl.innerHTML = `✅ USDC payment submitted successfully!`;
+                    statusEl.innerHTML = `⏳ Payment dialog completed - checking status...`;
                 } else {
-                    statusEl.innerHTML = `⏳ USDC payment dialog completed...`;
+                    statusEl.innerHTML = `❌ Payment failed or was cancelled`;
                 }
                 
                 // For now, we'll manually credit the lives since USDC transfers
@@ -1508,8 +1511,10 @@
                     }
                 };
                 
-                // Start checking transaction status
-                checkTransactionStatus();
+                // Only run additional checks if payment wasn't immediately successful
+                if (!result || !result.success) {
+                    checkTransactionStatus();
+                }
                 
             } catch (error) {
                 console.error('USDC payment failed:', error);
