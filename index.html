@@ -1446,13 +1446,36 @@
                 statusEl.innerHTML = '⏳ Opening Farcaster payment dialog...';
                 
                 // Use Farcaster's native sendToken action for seamless payment
-                const result = await window.farcasterSDK.actions.sendToken({
-                    token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // USDC on Base Sepolia
-                    amount: totalUsdcAmount,
-                    recipientAddress: window.window.CONTRACTS.LIVES
-                });
+                let result;
+                try {
+                    // First try Base Mainnet USDC (Farcaster might not support testnet)
+                    result = await window.farcasterSDK.actions.sendToken({
+                        token: `eip155:8453/erc20:${window.PRICING.USDC_MAINNET}`, // Base Mainnet USDC
+                        amount: totalUsdcAmount,
+                        recipientAddress: window.CONTRACTS.LIVES
+                    });
+                } catch (mainnetError) {
+                    console.log('⚠️ Mainnet USDC failed, trying testnet format:', mainnetError);
+                    // Fallback to testnet format
+                    result = await window.farcasterSDK.actions.sendToken({
+                        token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // Base Sepolia USDC
+                        amount: totalUsdcAmount,
+                        recipientAddress: window.CONTRACTS.LIVES
+                    });
+                }
                 
-                statusEl.innerHTML = `⏳ USDC payment sent! Transaction: ${result.transactionId.slice(0, 10)}...`;
+                console.log('📤 SendToken result:', result);
+                
+                // Handle the actual response structure safely
+                if (result && result.transactionId) {
+                    statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.transactionId.slice(0, 10)}...`;
+                } else if (result && result.txHash) {
+                    statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.txHash.slice(0, 10)}...`;
+                } else if (result) {
+                    statusEl.innerHTML = `✅ USDC payment submitted successfully!`;
+                } else {
+                    statusEl.innerHTML = `⏳ USDC payment dialog completed...`;
+                }
                 
                 // For now, we'll manually credit the lives since USDC transfers
                 // don't automatically trigger contract functions
