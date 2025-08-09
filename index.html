@@ -894,6 +894,15 @@
             initializeLivesDisplay();
         }
         
+        // Show payment success screen with continue option
+        function showPaymentSuccessScreen() {
+            document.getElementById('introScreen').style.display = 'block';
+            document.getElementById('introText').textContent = "🎉 Lives purchased! Ready to continue your escape?";
+            document.getElementById('continueBtn').textContent = "Let's Continue!";
+            document.getElementById('continueBtn').className = "btn";
+            document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
+        }
+        
         function generateInitialPlatforms() {
             platforms = [];
             
@@ -1364,7 +1373,7 @@
                     statusEl.innerHTML = '✅ Lives purchased! Restarting game...';
                     setTimeout(() => {
                         closeBuyLivesModal();
-                        // Reset game state and start directly
+                        // Reset game state and show continue screen
                         game = {
                             jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
                             running: false, introStep: 0, keys: {}, gameStarted: false,
@@ -1376,7 +1385,8 @@
                         platforms = [];
                         highestPlatform = 480;
                         document.getElementById('gameOver').style.display = 'none';
-                        startGame(); // This will check lives and start immediately
+                        // Show continue screen after payment
+                        showPaymentSuccessScreen();
                     }, 2000);
                 } else {
                     statusEl.innerHTML = '❌ Purchase failed. Please try again.';
@@ -1479,7 +1489,7 @@
                         
                         setTimeout(() => {
                             closeBuyLivesModal();
-                            // Reset game state and start directly
+                            // Reset game state and show continue screen
                             game = {
                                 jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
                                 running: false, introStep: 0, keys: {}, gameStarted: false,
@@ -1491,7 +1501,8 @@
                             platforms = [];
                             highestPlatform = 480;
                             document.getElementById('gameOver').style.display = 'none';
-                            startGame(); // This will check lives and start immediately
+                            // Show continue screen after payment
+                            showPaymentSuccessScreen();
                         }, 2000);
                     }
                 } else if (result && result.transactionId) {
@@ -1525,7 +1536,7 @@
                             
                             setTimeout(() => {
                                 closeBuyLivesModal();
-                                // Reset game state and start directly
+                                // Reset game state and show continue screen
                                 game = {
                                     jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
                                     running: false, introStep: 0, keys: {}, gameStarted: false,
@@ -1537,7 +1548,8 @@
                                 platforms = [];
                                 highestPlatform = 480;
                                 document.getElementById('gameOver').style.display = 'none';
-                                startGame(); // This will check lives and start immediately
+                                // Show continue screen after payment
+                                showPaymentSuccessScreen();
                             }, 2000);
                         }
                         
