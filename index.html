@@ -894,55 +894,6 @@
             initializeLivesDisplay();
         }
         
-        // Start game directly without intro (used after payments)
-        function startGameDirectly() {
-            // Hide all modals and screens
-            document.getElementById('introScreen').style.display = 'none';
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('buyLivesModal').style.display = 'none';
-            
-            // Reset game state
-            game = {
-                jumps: 0,
-                level: 1,
-                lavaSpeed: 0.5,
-                lavaHeight: 0,
-                running: true,
-                introStep: 0,
-                keys: {},
-                gameStarted: true,
-                cameraY: 0,
-                highestPlayerY: 460,
-                deathReason: "burned",
-                deathTimer: 0,
-                dyingState: false,
-                levelNotification: {
-                    show: false,
-                    timer: 0,
-                    level: 1
-                }
-            };
-            
-            // Reset player
-            player = {
-                x: 180,
-                y: 460,
-                width: 20,
-                height: 30,
-                velocityX: 0,
-                velocityY: 0,
-                speed: 5,
-                jumpPower: -15,
-                onGround: false,
-                hasJumped: false
-            };
-            
-            // Generate initial platforms
-            platforms = [];
-            generateInitialPlatforms();
-            initializeLivesDisplay();
-        }
-        
         function generateInitialPlatforms() {
             platforms = [];
             
@@ -1413,7 +1364,7 @@
                     statusEl.innerHTML = '✅ Lives purchased! Restarting game...';
                     setTimeout(() => {
                         closeBuyLivesModal();
-                        startGameDirectly(); // Skip intro after payment
+                        restartGame();
                     }, 2000);
                 } else {
                     statusEl.innerHTML = '❌ Purchase failed. Please try again.';
@@ -1516,7 +1467,7 @@
                         
                         setTimeout(() => {
                             closeBuyLivesModal();
-                            startGameDirectly(); // Skip intro after payment
+                            restartGame();
                         }, 2000);
                     }
                 } else if (result && result.transactionId) {
@@ -1550,7 +1501,7 @@
                             
                             setTimeout(() => {
                                 closeBuyLivesModal();
-                                startGameDirectly(); // Skip intro after payment
+                                restartGame();
                             }, 2000);
                         }
                         
@@ -1597,7 +1548,6 @@
                     
                     setTimeout(() => {
                         closeBuyLivesModal();
-                        startGameDirectly(); // Skip intro after testing mode purchase
                     }, 1500);
                 } else {
                     statusEl.innerHTML = '❌ Blockchain not initialized';
