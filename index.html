@@ -1492,7 +1492,7 @@
                         
                         // For testnet, we'll simulate the credit locally
                         if (window.blockchain) {
-                            userLives += livesToPurchase;
+                            window.blockchain.userLives += livesToPurchase;
                             updateLivesDisplay();
                             statusEl.innerHTML = `✅ ${livesToPurchase} ${livesToPurchase === 1 ? 'life' : 'lives'} credited! (Testnet simulation)`;
                             
