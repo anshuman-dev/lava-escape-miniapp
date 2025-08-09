@@ -1364,7 +1364,19 @@
                     statusEl.innerHTML = '✅ Lives purchased! Restarting game...';
                     setTimeout(() => {
                         closeBuyLivesModal();
-                        restartGame();
+                        // Reset game state and start directly
+                        game = {
+                            jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
+                            running: false, introStep: 0, keys: {}, gameStarted: false,
+                            cameraY: 0, highestPlayerY: 460, deathReason: "burned",
+                            deathTimer: 0, dyingState: false,
+                            levelNotification: { show: false, level: 1, timer: 0 }
+                        };
+                        player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
+                        platforms = [];
+                        highestPlatform = 480;
+                        document.getElementById('gameOver').style.display = 'none';
+                        startGame(); // This will check lives and start immediately
                     }, 2000);
                 } else {
                     statusEl.innerHTML = '❌ Purchase failed. Please try again.';
@@ -1467,7 +1479,19 @@
                         
                         setTimeout(() => {
                             closeBuyLivesModal();
-                            restartGame();
+                            // Reset game state and start directly
+                            game = {
+                                jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
+                                running: false, introStep: 0, keys: {}, gameStarted: false,
+                                cameraY: 0, highestPlayerY: 460, deathReason: "burned",
+                                deathTimer: 0, dyingState: false,
+                                levelNotification: { show: false, level: 1, timer: 0 }
+                            };
+                            player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
+                            platforms = [];
+                            highestPlatform = 480;
+                            document.getElementById('gameOver').style.display = 'none';
+                            startGame(); // This will check lives and start immediately
                         }, 2000);
                     }
                 } else if (result && result.transactionId) {
@@ -1501,7 +1525,19 @@
                             
                             setTimeout(() => {
                                 closeBuyLivesModal();
-                                restartGame();
+                                // Reset game state and start directly
+                                game = {
+                                    jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
+                                    running: false, introStep: 0, keys: {}, gameStarted: false,
+                                    cameraY: 0, highestPlayerY: 460, deathReason: "burned",
+                                    deathTimer: 0, dyingState: false,
+                                    levelNotification: { show: false, level: 1, timer: 0 }
+                                };
+                                player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
+                                platforms = [];
+                                highestPlatform = 480;
+                                document.getElementById('gameOver').style.display = 'none';
+                                startGame(); // This will check lives and start immediately
                             }, 2000);
                         }
                         
@@ -1548,6 +1584,19 @@
                     
                     setTimeout(() => {
                         closeBuyLivesModal();
+                        // Reset game state and start directly
+                        game = {
+                            jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
+                            running: false, introStep: 0, keys: {}, gameStarted: false,
+                            cameraY: 0, highestPlayerY: 460, deathReason: "burned",
+                            deathTimer: 0, dyingState: false,
+                            levelNotification: { show: false, level: 1, timer: 0 }
+                        };
+                        player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
+                        platforms = [];
+                        highestPlatform = 480;
+                        document.getElementById('gameOver').style.display = 'none';
+                        startGame(); // This will check lives and start immediately
                     }, 1500);
                 } else {
                     statusEl.innerHTML = '❌ Blockchain not initialized';
