@@ -309,39 +309,36 @@
             <div class="modal-content">
                 <h3>💀 Out of Lives!</h3>
                 <p>Purchase more lives to continue playing:</p>
-                <div class="lives-options">
-                    <button class="btn" onclick="buyLivesWithETH(1)">
-                        1 Life - 0.0001 ETH
-                    </button>
-                    <button class="btn" onclick="buyLivesWithETH(3)">
-                        3 Lives - 0.0003 ETH
-                    </button>
-                    <button class="btn" onclick="buyLivesWithETH(5)">
-                        5 Lives - 0.0005 ETH
-                    </button>
+                
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0;">
+                    <button class="btn" onclick="decrementLives()" id="decrementBtn">-</button>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #00ff88;" id="livesCounter">1</div>
+                        <div style="font-size: 12px; color: #ccc;">Lives</div>
+                    </div>
+                    <button class="btn" onclick="incrementLives()" id="incrementBtn">+</button>
                 </div>
-                <div class="lives-options">
-                    <button class="btn" onclick="buyLivesWithUSDC(1)">
-                        1 Life - $0.30 USDC
-                    </button>
-                    <button class="btn" onclick="buyLivesWithUSDC(3)">
-                        3 Lives - $0.90 USDC
-                    </button>
-                    <button class="btn" onclick="buyLivesWithUSDC(5)">
-                        5 Lives - $1.50 USDC
-                    </button>
+                
+                <div style="text-align: center; margin: 15px 0;">
+                    <div style="font-size: 18px; color: #fff;" id="totalPrice">$0.30 per life</div>
+                    <div style="font-size: 12px; color: #ccc;">Base Sepolia Testnet</div>
                 </div>
-                <div class="lives-options">
-                    <button class="btn" onclick="buyLivesWithBasePay(1)" style="background: #0052FF; border-color: #0052FF;">
-                        💫 1 Life - BasePay ($0.30)
-                    </button>
-                    <button class="btn" onclick="buyLivesWithBasePay(3)" style="background: #0052FF; border-color: #0052FF;">
-                        💫 3 Lives - BasePay ($0.90)
-                    </button>
-                    <button class="btn" onclick="buyLivesWithBasePay(5)" style="background: #0052FF; border-color: #0052FF;">
-                        💫 5 Lives - BasePay ($1.50)
-                    </button>
-                </div>
+                
+                <!-- Primary USDC Payment Button -->
+                <button class="btn" onclick="buyLivesWithUSDC()" style="background: #0052FF; border: 2px solid #0052FF; border-radius: 12px; color: white; font-weight: 600; width: 100%; margin: 10px 0; padding: 12px; cursor: pointer;">
+                    💳 Pay with USDC (Recommended)
+                </button>
+                
+                <!-- Secondary ETH Payment Button -->
+                <button class="btn" onclick="buyLivesWithETH(livesToPurchase)" style="background: #ff6b6b; border: 2px solid #ff6b6b; border-radius: 12px; color: white; font-weight: 600; width: 100%; margin: 5px 0; padding: 10px; cursor: pointer; opacity: 0.8;">
+                    ⚡ Pay with ETH
+                </button>
+                
+                <!-- Testing Mode Button -->
+                <button class="btn" onclick="buyLivesSimulated()" style="background: #666; border: 2px solid #666; border-radius: 8px; color: #ccc; font-weight: 400; width: 100%; margin: 5px 0; padding: 8px; cursor: pointer; font-size: 14px;">
+                    🎮 Testing Mode (Free)
+                </button>
+                
                 <button class="btn danger-btn" onclick="closeBuyLivesModal()">
                     ❌ No Thanks
                 </button>
@@ -361,6 +358,19 @@
     </div>
 
     <!-- FARCASTER MINIAPP SDK INTEGRATION -->
+
+    <script>
+        // 💰 GLOBAL PRICING CONFIGURATION
+        // Make pricing constants globally available for all functions
+        window.PRICING = {
+            USD_PER_LIFE: 0.30,           // $0.30 per life
+            ETH_PER_LIFE: '100000000000000',  // 0.0001 ETH in wei
+            USDC_PER_LIFE: 300000,        // 0.30 USDC (6 decimals: 300,000 units)
+            USDC_TESTNET: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia USDC
+            USDC_MAINNET: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'  // Base Mainnet USDC
+        };
+    </script>
+
     <script type="module">
         // 🚀 FARCASTER MINIAPP SDK INTEGRATION 2025
         console.log('🎮 Lava Escape - Starting MiniApp initialization...');
@@ -369,7 +379,7 @@
         import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
         
         // Global state
-        let isInMiniApp = false;
+        window.window.isInMiniApp = false;
         let readyCalled = false;
         let userContext = null;
         
@@ -396,11 +406,11 @@
                 updateDebugStatus('sdkStatus', 'Loading MiniApp SDK...');
                 
                 // Check if we're in a mini app environment
-                isInMiniApp = await sdk.isInMiniApp();
-                console.log('🎯 Mini app status:', isInMiniApp);
-                updateDebugStatus('envStatus', isInMiniApp ? 'Farcaster MiniApp' : 'Regular Browser');
+                window.window.isInMiniApp = await sdk.window.isInMiniApp();
+                console.log('🎯 Mini app status:', window.window.isInMiniApp);
+                updateDebugStatus('envStatus', window.window.isInMiniApp ? 'Farcaster MiniApp' : 'Regular Browser');
                 
-                if (isInMiniApp) {
+                if (window.isInMiniApp) {
                     // Get user context
                     userContext = await sdk.context;
                     console.log('👤 User context:', userContext);
@@ -456,7 +466,7 @@
         
         // Social sharing functions
         window.shareScore = async function() {
-            if (!isInMiniApp) {
+            if (!window.isInMiniApp) {
                 console.log('📱 Share feature only available in MiniApp');
                 return;
             }
@@ -482,7 +492,7 @@
         };
         
         window.addToFarcaster = async function() {
-            if (!isInMiniApp) {
+            if (!window.isInMiniApp) {
                 console.log('📱 Add to app feature only available in MiniApp');
                 return;
             }
@@ -511,16 +521,18 @@
         
         // Import wagmi and viem
         import { createConfig, http, getAccount, readContract, writeContract, waitForTransactionReceipt } from 'https://esm.sh/@wagmi/core';
-        import { base } from 'https://esm.sh/wagmi/chains';
+        import { base, baseSepolia } from 'https://esm.sh/wagmi/chains';
         import { createPublicClient } from 'https://esm.sh/viem';
-        import { pay } from 'https://esm.sh/@base-org/account';
+        // BasePay temporarily disabled for testnet testing
+        window.basePayReady = false;
         
         // Smart contract addresses (will be updated after deployment)
-        const CONTRACTS = {
-            LIVES: '0x0000000000000000000000000000000000000000', // Placeholder
-            LEADERBOARD: '0x0000000000000000000000000000000000000000', // Placeholder
-            USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC
+        window.CONTRACTS = {
+            LIVES: '0x5ce6ed6fbe544aba92dfb7850613e407781256f1', 
+            LEADERBOARD: '0xb11e64dc3835197c499fa894465891f3583780d6', 
+            USDC: window.PRICING.USDC_TESTNET // Using testnet USDC for now
         };
+        const CONTRACTS = window.CONTRACTS;
         
         // Contract ABIs (simplified for essential functions)
         const LIVES_ABI = [
@@ -529,6 +541,13 @@
                 "name": "buyLives",
                 "outputs": [],
                 "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"name": "amount", "type": "uint8"}],
+                "name": "buyLivesWithUSDC",
+                "outputs": [],
+                "stateMutability": "nonpayable",
                 "type": "function"
             },
             {
@@ -566,9 +585,9 @@
         
         // Configure wagmi for Base L2
         const config = createConfig({
-            chains: [base],
+            chains: [baseSepolia],
             transports: {
-                [base.id]: http(),
+                [baseSepolia.id]: http(),
             },
         });
         
@@ -581,7 +600,7 @@
         async function initializeBlockchain() {
             try {
                 // Get Ethereum provider from Farcaster SDK
-                if (window.farcasterSDK && isInMiniApp) {
+                if (window.farcasterSDK && window.isInMiniApp) {
                     ethereumProvider = await window.farcasterSDK.wallet.getEthereumProvider();
                     console.log('🔗 Ethereum provider obtained from Farcaster');
                     
@@ -607,14 +626,14 @@
         
         // Load user's lives from smart contract
         async function loadUserLives() {
-            if (!userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+            if (!userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
                 console.log('📝 Contract not deployed yet, using default lives');
                 return;
             }
             
             try {
                 const lives = await readContract(config, {
-                    address: CONTRACTS.LIVES,
+                    address: window.CONTRACTS.LIVES,
                     abi: LIVES_ABI,
                     functionName: 'getLives',
                     args: [userAddress],
@@ -631,17 +650,16 @@
         
         // Buy lives with ETH
         async function buyLives(amount = 1) {
-            if (!ethereumProvider || !userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+            if (!ethereumProvider || !userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
                 console.log('⚠️ Blockchain not available for purchase');
                 return false;
             }
             
             try {
-                const pricePerLife = '100000000000000'; // 0.0001 ETH in wei
-                const totalPrice = (BigInt(pricePerLife) * BigInt(amount)).toString();
+                const totalPrice = (BigInt(window.PRICING.ETH_PER_LIFE) * BigInt(amount)).toString();
                 
                 const hash = await writeContract(config, {
-                    address: CONTRACTS.LIVES,
+                    address: window.CONTRACTS.LIVES,
                     abi: LIVES_ABI,
                     functionName: 'buyLives',
                     args: [amount],
@@ -678,7 +696,7 @@
         
         // Use a life (called when game over)
         async function useLive() {
-            if (!ethereumProvider || !userAddress || CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
+            if (!ethereumProvider || !userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
                 // Offline mode - just decrement locally
                 if (userLives > 0) {
                     userLives--;
@@ -690,7 +708,7 @@
             
             try {
                 const hash = await writeContract(config, {
-                    address: CONTRACTS.LIVES,
+                    address: window.CONTRACTS.LIVES,
                     abi: LIVES_ABI,
                     functionName: 'useLive',
                     args: [userAddress],
@@ -713,14 +731,14 @@
         
         // Submit score to leaderboard
         async function submitScore(jumps, level) {
-            if (!ethereumProvider || !userAddress || CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
+            if (!ethereumProvider || !userAddress || window.CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
                 console.log('📊 Leaderboard contract not available');
                 return false;
             }
             
             try {
                 const hash = await writeContract(config, {
-                    address: CONTRACTS.LEADERBOARD,
+                    address: window.CONTRACTS.LEADERBOARD,
                     abi: LEADERBOARD_ABI,
                     functionName: 'submitScore',
                     args: [jumps, level || 1],
@@ -737,7 +755,7 @@
         
         // Get leaderboard data
         async function getLeaderboard() {
-            if (CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
+            if (window.CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
                 // Return mock data for testing
                 return [
                     { player: '0x1234...5678', jumps: 125, timestamp: Date.now(), level: 8 },
@@ -748,7 +766,7 @@
             
             try {
                 const leaderboard = await readContract(config, {
-                    address: CONTRACTS.LEADERBOARD,
+                    address: window.CONTRACTS.LEADERBOARD,
                     abi: LEADERBOARD_ABI,
                     functionName: 'getLeaderboard',
                 });
@@ -769,6 +787,8 @@
         }
         
         // Make functions globally available
+        window.updateLivesDisplay = updateLivesDisplay;
+        window.basePayReady = false; // Initialize globally
         window.blockchain = {
             initializeBlockchain,
             loadUserLives,
@@ -778,7 +798,9 @@
             getLeaderboard,
             getUserLives: () => userLives,
             getUserAddress: () => userAddress,
-            isWalletConnected: () => !!userAddress
+            isWalletConnected: () => !!userAddress,
+            get userLives() { return userLives; },
+            set userLives(value) { userLives = value; }
         };
         
         // Initialize after a short delay to ensure Farcaster SDK is ready
@@ -1237,11 +1259,26 @@
                     showBuyLivesModal();
                 }
             } else {
-                // Still have lives - quick restart
-                console.log('❤️ Life used, restarting quickly...');
+                // Still have lives - show death message briefly then restart
+                if (game.deathReason === "fell") {
+                    document.getElementById('gameOverTitle').textContent = "💀 OUCH!";
+                    document.getElementById('gameOverMessage').textContent = "You fell! But you have lives left.";
+                } else if (game.deathReason === "offscreen") {
+                    document.getElementById('gameOverTitle').textContent = "💀 FELL TOO FAR!";
+                    document.getElementById('gameOverMessage').textContent = "You fell off screen! But you have lives left.";
+                } else {
+                    document.getElementById('gameOverTitle').textContent = "🔥 BURNED!";
+                    document.getElementById('gameOverMessage').textContent = "The lava got you! But you have lives left.";
+                }
+                
+                document.getElementById('finalJumps').textContent = game.jumps;
+                document.getElementById('finalLevel').textContent = game.level;
+                document.getElementById('gameOver').style.display = 'block';
+                
+                console.log('❤️ Life used, restarting in 2 seconds...');
                 setTimeout(() => {
                     restartGame();
-                }, 1000);
+                }, 2000);
             }
         }
         
@@ -1293,6 +1330,11 @@
         }
         
         function gameLoop() {
+            if (!game.running) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
             updatePlayer();
             updateCamera();
             updateLevelNotification();
@@ -1307,12 +1349,9 @@
         gameLoop();
         
         // Buy Lives Modal Functions
-        function showBuyLivesModal() {
-            document.getElementById('buyLivesModal').style.display = 'flex';
-        }
-        
         function closeBuyLivesModal() {
             document.getElementById('buyLivesModal').style.display = 'none';
+            document.getElementById('purchaseStatus').innerHTML = '';
         }
         
         async function buyLivesWithETH(amount) {
@@ -1349,41 +1388,143 @@
             }
         }
 
-        // BasePay integration for fast USDC payments
-        async function buyLivesWithBasePay(amount) {
+        // Lives counter for purchase modal
+        let livesToPurchase = 1;
+
+        function incrementLives() {
+            if (livesToPurchase < 3) {
+                livesToPurchase++;
+                updatePurchaseDisplay();
+            }
+        }
+
+        function decrementLives() {
+            if (livesToPurchase > 1) {
+                livesToPurchase--;
+                updatePurchaseDisplay();
+            }
+        }
+
+        function updatePurchaseDisplay() {
+            document.getElementById('livesCounter').textContent = livesToPurchase;
+            document.getElementById('totalPrice').textContent = `$${(livesToPurchase * window.PRICING.USD_PER_LIFE).toFixed(2)}`;
+            
+            // Update button states
+            document.getElementById('decrementBtn').disabled = (livesToPurchase <= 1);
+            document.getElementById('incrementBtn').disabled = (livesToPurchase >= 3);
+        }
+
+        // Initialize purchase display when modal opens
+        function showBuyLivesModal() {
+            livesToPurchase = 1;
+            updatePurchaseDisplay();
+            document.getElementById('buyLivesModal').style.display = 'flex';
+        }
+
+        // Native Farcaster USDC payments using sendToken action
+        async function buyLivesWithUSDC() {
             const statusEl = document.getElementById('purchaseStatus');
-            statusEl.innerHTML = '⚡ Processing BasePay payment...';
+            statusEl.innerHTML = '⚡ Preparing USDC payment...';
+            
+            // Check if Farcaster SDK is ready
+            if (!window.farcasterSDK) {
+                statusEl.innerHTML = '❌ Farcaster SDK not available. Falling back to ETH payment.';
+                setTimeout(() => buyLivesWithETH(livesToPurchase), 1000);
+                return;
+            }
             
             try {
-                // Calculate USD amount (0.30 per life)
-                const usdAmount = (amount * 0.3).toFixed(2);
+                // Calculate USDC amount using pricing constants
+                const totalUsdcAmount = (livesToPurchase * window.PRICING.USDC_PER_LIFE).toString();
                 
-                // Trigger BasePay payment
-                const payment = await pay({
-                    amount: usdAmount,
-                    to: '0x0000000000000000000000000000000000000000', // TODO: Replace with contract owner address
-                    testnet: true // Set to false for mainnet
+                console.log('Initiating USDC payment via sendToken:', {
+                    amount: totalUsdcAmount,
+                    lives: livesToPurchase,
+                    recipientAddress: window.window.CONTRACTS.LIVES
                 });
                 
-                statusEl.innerHTML = `⏳ Payment initiated. ID: ${payment.id}`;
+                statusEl.innerHTML = '⏳ Opening Farcaster payment dialog...';
                 
-                // TODO: After payment confirms, call smart contract to grant lives
-                // For now, simulate success
-                setTimeout(() => {
-                    if (window.blockchain) {
-                        window.blockchain.userLives += amount;
-                        updateLivesDisplay();
-                        statusEl.innerHTML = `✅ ${amount} lives purchased with BasePay!`;
-                        setTimeout(() => {
-                            closeBuyLivesModal();
-                        }, 2000);
+                // Use Farcaster's native sendToken action for seamless payment
+                const result = await window.farcasterSDK.actions.sendToken({
+                    token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // USDC on Base Sepolia
+                    amount: totalUsdcAmount,
+                    recipientAddress: window.window.CONTRACTS.LIVES
+                });
+                
+                statusEl.innerHTML = `⏳ USDC payment sent! Transaction: ${result.transactionId.slice(0, 10)}...`;
+                
+                // For now, we'll manually credit the lives since USDC transfers
+                // don't automatically trigger contract functions
+                const checkTransactionStatus = async () => {
+                    try {
+                        // Wait for blockchain confirmation
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        
+                        // Since sendToken just sends USDC to the contract but doesn't call 
+                        // buyLivesWithUSDC, we need to manually credit lives for now
+                        // In production, this would be handled by a backend service watching for USDC transfers
+                        
+                        statusEl.innerHTML = '⚠️ USDC payment sent! Lives will be credited manually. Please contact support if not received.';
+                        
+                        // For testnet, we'll simulate the credit locally
+                        if (window.blockchain) {
+                            userLives += livesToPurchase;
+                            updateLivesDisplay();
+                            statusEl.innerHTML = `✅ ${livesToPurchase} ${livesToPurchase === 1 ? 'life' : 'lives'} credited! (Testnet simulation)`;
+                            
+                            setTimeout(() => {
+                                closeBuyLivesModal();
+                                restartGame();
+                            }, 2000);
+                        }
+                        
+                    } catch (statusError) {
+                        console.error('Transaction status check failed:', statusError);
+                        statusEl.innerHTML = '⚠️ Payment sent but status unclear. Please check your lives or contact support.';
                     }
-                }, 3000);
+                };
+                
+                // Start checking transaction status
+                checkTransactionStatus();
                 
             } catch (error) {
-                console.error('BasePay purchase failed:', error);
-                statusEl.innerHTML = '❌ BasePay purchase failed. Try again.';
+                console.error('USDC payment failed:', error);
+                statusEl.innerHTML = '❌ USDC payment failed. Try ETH payment instead?';
+                
+                // Show specific error messages
+                if (error.message?.includes('user rejected')) {
+                    statusEl.innerHTML = '❌ Payment cancelled by user';
+                } else if (error.message?.includes('insufficient')) {
+                    statusEl.innerHTML = '❌ Insufficient USDC balance';
+                } else {
+                    statusEl.innerHTML = '❌ USDC payment failed. Try ETH payment instead?';
+                }
             }
+        }
+        
+        // Simulated purchase for testnet debugging
+        async function buyLivesSimulated() {
+            const statusEl = document.getElementById('purchaseStatus');
+            statusEl.innerHTML = '🎮 Processing test purchase...';
+            
+            // Simulate purchase delay
+            setTimeout(() => {
+                if (window.blockchain) {
+                    const oldLives = window.blockchain.userLives;
+                    window.blockchain.userLives += livesToPurchase;
+                    const newLives = window.blockchain.userLives;
+                    
+                    window.updateLivesDisplay();
+                    statusEl.innerHTML = `✅ ${livesToPurchase} lives granted!`;
+                    
+                    setTimeout(() => {
+                        closeBuyLivesModal();
+                    }, 1500);
+                } else {
+                    statusEl.innerHTML = '❌ Blockchain not initialized';
+                }
+            }, 500);
         }
         
         // Initialize lives display when game starts

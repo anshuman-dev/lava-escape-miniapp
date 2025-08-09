@@ -18,8 +18,8 @@ contract LavaEscapeLives is Ownable, ReentrancyGuard {
     uint256 public constant LIFE_PRICE_ETH = 0.0001 ether; // ~$0.30 USD
     uint256 public constant LIFE_PRICE_USDC = 300000; // 0.3 USDC (6 decimals)
     
-    // Base USDC contract address
-    IERC20 public constant USDC = IERC20(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913);
+    // Base USDC contract address (will be set during deployment)
+    IERC20 public immutable USDC;
     
     // State variables
     mapping(address => uint8) public lives;
@@ -32,7 +32,9 @@ contract LavaEscapeLives is Ownable, ReentrancyGuard {
     event LivesGranted(address indexed player, uint8 amount);
     event FundsWithdrawn(address indexed owner, uint256 ethAmount, uint256 usdcAmount);
     
-    constructor() Ownable(msg.sender) {
+    constructor(address _usdcAddress) Ownable(msg.sender) {
+        require(_usdcAddress != address(0), "Invalid USDC address");
+        USDC = IERC20(_usdcAddress);
         // Owner is set to contract deployer
         // Can be transferred to a multisig later
     }
@@ -69,7 +71,7 @@ contract LavaEscapeLives is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Buy lives with USDC
+     * @dev Buy lives with USDC (requires prior approval)
      */
     function buyLivesWithUSDC(uint8 amount) external nonReentrant {
         require(amount > 0 && amount <= 10, "Invalid amount (1-10)");
@@ -89,6 +91,30 @@ contract LavaEscapeLives is Ownable, ReentrancyGuard {
         lives[msg.sender] += amount;
         
         emit LivesPurchased(msg.sender, amount, true);
+    }
+    
+    /**
+     * @dev Process USDC payment and credit lives (for direct transfers via Farcaster sendToken)
+     * This function should be called by the backend after detecting a USDC transfer
+     */
+    function creditLivesFromUSDC(address player, uint256 usdcAmount) external onlyOwner {
+        require(player != address(0), "Invalid player address");
+        require(usdcAmount > 0, "Amount must be positive");
+        
+        // Calculate lives based on USDC amount
+        uint8 livesToCredit = uint8(usdcAmount / LIFE_PRICE_USDC);
+        require(livesToCredit > 0, "Insufficient USDC for one life");
+        require(lives[player] + livesToCredit <= MAX_LIVES, "Would exceed max lives");
+        
+        // Initialize player if first time
+        if (!hasPlayedBefore[player]) {
+            lives[player] = DEFAULT_LIVES;
+            hasPlayedBefore[player] = true;
+        }
+        
+        lives[player] += livesToCredit;
+        
+        emit LivesPurchased(player, livesToCredit, true);
     }
     
     /**
