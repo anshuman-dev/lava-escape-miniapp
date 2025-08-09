@@ -828,6 +828,7 @@
             deathReason: "burned",
             deathTimer: 0,
             dyingState: false,
+            firstTimePlayer: true, // Track if this is the first time playing
             levelNotification: {
                 show: false,
                 level: 1,
@@ -886,6 +887,9 @@
                 document.getElementById('continueBtn').onclick = showBuyLivesModal;
                 return;
             }
+            
+            // Mark that the player is no longer first-time
+            game.firstTimePlayer = false;
             
             document.getElementById('introScreen').style.display = 'none';
             game.running = true;
@@ -1268,30 +1272,65 @@
                     showBuyLivesModal();
                 }
             } else {
-                // Still have lives - show death message briefly then restart
-                if (game.deathReason === "fell") {
-                    document.getElementById('gameOverTitle').textContent = "💀 OUCH!";
-                    document.getElementById('gameOverMessage').textContent = "You fell! But you have lives left.";
-                } else if (game.deathReason === "offscreen") {
-                    document.getElementById('gameOverTitle').textContent = "💀 FELL TOO FAR!";
-                    document.getElementById('gameOverMessage').textContent = "You fell off screen! But you have lives left.";
-                } else {
-                    document.getElementById('gameOverTitle').textContent = "🔥 BURNED!";
-                    document.getElementById('gameOverMessage').textContent = "The lava got you! But you have lives left.";
-                }
+                // Still have lives - show continue screen instead of auto-restart
+                console.log('❤️ Life used, showing continue screen...');
                 
-                document.getElementById('finalJumps').textContent = game.jumps;
-                document.getElementById('finalLevel').textContent = game.level;
-                document.getElementById('gameOver').style.display = 'block';
+                // Reset game state but don't auto-start (preserve first-time status)
+                const wasFirstTime = game.firstTimePlayer;
+                game = {
+                    jumps: 0,
+                    level: 1,
+                    lavaSpeed: 0.5,
+                    lavaHeight: 0,
+                    running: false,
+                    introStep: 0,
+                    keys: {},
+                    gameStarted: false,
+                    cameraY: 0,
+                    highestPlayerY: 460,
+                    deathReason: "burned",
+                    deathTimer: 0,
+                    dyingState: false,
+                    firstTimePlayer: wasFirstTime, // Since they died, they're no longer first-time
+                    levelNotification: {
+                        show: false,
+                        level: 1,
+                        timer: 0
+                    }
+                };
                 
-                console.log('❤️ Life used, restarting in 2 seconds...');
-                setTimeout(() => {
-                    restartGame();
-                }, 2000);
+                window.game = game; // Update global reference
+                
+                player = {
+                    x: 180,
+                    y: 460,
+                    width: 8,
+                    height: 16,
+                    velocityX: 0,
+                    velocityY: 0,
+                    onGround: true,
+                    jumpPower: -15,
+                    speed: 5,
+                    hasJumped: false
+                };
+                
+                platforms = [];
+                highestPlatform = 480;
+                
+                // Hide game over modal and show continue screen
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('introScreen').style.display = 'block';
+                document.getElementById('introText').textContent = "💀 Oops! You died but have lives remaining. Ready to try again?";
+                document.getElementById('continueBtn').textContent = "Try Again!";
+                document.getElementById('continueBtn').className = "btn";
+                document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
             }
         }
         
         function restartGame() {
+            // Preserve first-time status
+            const wasFirstTime = game.firstTimePlayer;
+            
             game = {
                 jumps: 0,
                 level: 1,
@@ -1306,6 +1345,7 @@
                 deathReason: "burned",
                 deathTimer: 0,
                 dyingState: false,
+                firstTimePlayer: wasFirstTime, // Preserve first-time status
                 levelNotification: {
                     show: false,
                     level: 1,
@@ -1333,9 +1373,22 @@
             
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('introScreen').style.display = 'block';
-            document.getElementById('introText').textContent = introMessages[0];
-            document.getElementById('continueBtn').textContent = "Continue";
-            document.getElementById('continueBtn').className = "btn";
+            
+            // Set button behavior based on whether it's first time
+            if (wasFirstTime) {
+                // First time - show full intro sequence
+                document.getElementById('introText').textContent = "Everything seems normal...";
+                document.getElementById('continueBtn').textContent = "Continue";
+                document.getElementById('continueBtn').className = "btn";
+                document.getElementById('continueBtn').onclick = nextIntroStep; // Use intro sequence
+                game.introStep = 0; // Reset intro step
+            } else {
+                // Not first time - direct restart
+                document.getElementById('introText').textContent = "🎮 Ready to escape the lava again?";
+                document.getElementById('continueBtn').textContent = "Let's Go!";
+                document.getElementById('continueBtn').className = "btn";
+                document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
+            }
         }
         
         function gameLoop() {
