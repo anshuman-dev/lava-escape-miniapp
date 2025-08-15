@@ -257,6 +257,69 @@
             font-weight: bold;
             color: #00ff88;
         }
+        
+        /* Mobile touch zone indicators */
+        .touch-hints {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .touch-hints.visible {
+            opacity: 0.6;
+        }
+        
+        .touch-zone-indicator {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+        
+        .touch-zone-left {
+            left: 5%;
+            top: 60%;
+            width: 40%;
+            height: 25%;
+        }
+        
+        .touch-zone-right {
+            right: 5%;
+            top: 60%;
+            width: 40%;
+            height: 25%;
+        }
+        
+        /* Mobile-specific control text */
+        .mobile-controls {
+            display: none;
+            text-align: center;
+            color: #888;
+            font-size: 10px;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                display: none;
+            }
+            .mobile-controls {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
@@ -274,10 +337,25 @@
             </div>
         </div>
         
-        <canvas id="gameCanvas" width="360" height="500"></canvas>
+        <div style="position: relative;">
+            <canvas id="gameCanvas" width="360" height="500"></canvas>
+            
+            <!-- Touch zone visual indicators (mobile only) -->
+            <div id="touchHints" class="touch-hints">
+                <div class="touch-zone-indicator touch-zone-left">
+                    👈 MOVE + TAP
+                </div>
+                <div class="touch-zone-indicator touch-zone-right">
+                    MOVE + TAP 👉
+                </div>
+            </div>
+        </div>
         
         <div class="controls">
             🎮 Arrow Keys/WASD • Space/Click to jump • ESCAPE THE LAVA!
+        </div>
+        <div class="mobile-controls">
+            📱 Tap screen to jump • Hold left/right sides to move • ESCAPE THE LAVA!
             <div id="debugInfo" class="debug-info" style="display: none;">
                 <div>Environment: <span id="envStatus">Checking...</span></div>
                 <div>SDK Status: <span id="sdkStatus">Loading...</span></div>
@@ -956,22 +1034,331 @@
             game.keys[e.code] = false;
         });
         
-        // Mobile/click controls
-        canvas.addEventListener('click', (e) => {
+        // ==========================================
+        // 📱 PROFESSIONAL MOBILE TOUCH CONTROLS
+        // ==========================================
+        
+        // Touch control state management
+        const touchControls = {
+            enabled: false,
+            leftZone: { active: false, touchId: null },
+            rightZone: { active: false, touchId: null },
+            jumpZone: { active: false, touchId: null },
+            screenWidth: 0,
+            screenHeight: 0,
+            initialized: false
+        };
+        
+        // Device detection with multiple fallbacks
+        function detectTouchCapability() {
+            return (
+                'ontouchstart' in window ||
+                navigator.maxTouchPoints > 0 ||
+                navigator.msMaxTouchPoints > 0 ||
+                window.DocumentTouch && document instanceof window.DocumentTouch
+            );
+        }
+        
+        // Initialize touch controls if touch device detected
+        function initializeTouchControls() {
+            if (touchControls.initialized) return;
+            
+            const isTouchDevice = detectTouchCapability();
+            const isNarrowScreen = window.innerWidth < 768;
+            
+            if (isTouchDevice || isNarrowScreen) {
+                touchControls.enabled = true;
+                touchControls.screenWidth = canvas.clientWidth;
+                touchControls.screenHeight = canvas.clientHeight;
+                setupTouchEventListeners();
+                showTouchHints();
+                console.log('🎮 Touch controls activated for mobile device');
+            }
+            
+            touchControls.initialized = true;
+        }
+        
+        // Show touch zone hints for mobile users
+        function showTouchHints() {
+            const hintsElement = document.getElementById('touchHints');
+            if (!hintsElement) return;
+            
+            // Show hints immediately
+            hintsElement.classList.add('visible');
+            
+            // Hide hints after 4 seconds of gameplay
+            setTimeout(() => {
+                if (game.jumps > 2) { // Only hide if user has started playing
+                    hintsElement.classList.remove('visible');
+                }
+            }, 4000);
+            
+            // Also hide on first touch interaction
+            let hasInteracted = false;
+            const hideOnInteraction = () => {
+                if (!hasInteracted) {
+                    hasInteracted = true;
+                    setTimeout(() => {
+                        hintsElement.classList.remove('visible');
+                    }, 2000);
+                }
+            };
+            
+            canvas.addEventListener('touchstart', hideOnInteraction, { once: true });
+        }
+        
+        // ==========================================
+        // 🔍 PERFORMANCE MONITORING & VALIDATION
+        // ==========================================
+        
+        const performanceMonitor = {
+            frameCount: 0,
+            lastFpsCheck: performance.now(),
+            currentFps: 60,
+            inputLatencySum: 0,
+            inputCount: 0,
+            touchEventCount: 0,
+            enabled: false
+        };
+        
+        // Enable performance monitoring in debug mode
+        function enablePerformanceMonitoring() {
+            const urlParams = new URLSearchParams(window.location.search);
+            performanceMonitor.enabled = urlParams.has('debug') || urlParams.has('perf');
+            
+            if (performanceMonitor.enabled) {
+                console.log('🔍 Performance monitoring enabled');
+                setInterval(logPerformanceMetrics, 5000); // Log every 5 seconds
+            }
+        }
+        
+        // Track input latency for touch events
+        function trackInputLatency(startTime) {
+            if (!performanceMonitor.enabled) return;
+            
+            const latency = performance.now() - startTime;
+            performanceMonitor.inputLatencySum += latency;
+            performanceMonitor.inputCount++;
+            
+            if (latency > 50) {
+                console.warn('⚠️ High input latency detected:', latency.toFixed(2) + 'ms');
+            }
+        }
+        
+        // Log performance metrics to console
+        function logPerformanceMetrics() {
+            if (!performanceMonitor.enabled) return;
+            
+            const avgInputLatency = performanceMonitor.inputCount > 0 
+                ? (performanceMonitor.inputLatencySum / performanceMonitor.inputCount).toFixed(2)
+                : 'N/A';
+            
+            console.log('📊 Performance Metrics:', {
+                fps: performanceMonitor.currentFps,
+                avgInputLatency: avgInputLatency + 'ms',
+                touchEvents: performanceMonitor.touchEventCount,
+                touchControlsActive: touchControls.enabled
+            });
+            
+            // Reset counters
+            performanceMonitor.inputLatencySum = 0;
+            performanceMonitor.inputCount = 0;
+            performanceMonitor.touchEventCount = 0;
+        }
+        
+        // FPS calculation in game loop
+        function updatePerformanceMetrics() {
+            if (!performanceMonitor.enabled) return;
+            
+            performanceMonitor.frameCount++;
+            const now = performance.now();
+            
+            if (now - performanceMonitor.lastFpsCheck >= 1000) {
+                performanceMonitor.currentFps = performanceMonitor.frameCount;
+                performanceMonitor.frameCount = 0;
+                performanceMonitor.lastFpsCheck = now;
+                
+                // Alert if FPS drops significantly
+                if (performanceMonitor.currentFps < 45) {
+                    console.warn('⚠️ Low FPS detected:', performanceMonitor.currentFps);
+                }
+            }
+        }
+        
+        // Setup optimized touch event listeners
+        function setupTouchEventListeners() {
+            // Remove legacy click handler to prevent conflicts
+            canvas.removeEventListener('click', legacyClickHandler);
+            
+            // Multi-touch event handlers with passive optimization
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvas.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+            
+            // Prevent context menu on long press (mobile Safari)
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Handle screen orientation/resize changes
+            window.addEventListener('orientationchange', updateTouchZones);
+            window.addEventListener('resize', updateTouchZones);
+        }
+        
+        // Legacy click handler reference for removal
+        function legacyClickHandler(e) {
             if (game.running && player.onGround) {
                 player.velocityY = player.jumpPower;
                 player.onGround = false;
                 player.hasJumped = true;
             }
-        });
+        }
+        
+        // Update touch zone dimensions on screen changes
+        function updateTouchZones() {
+            if (!touchControls.enabled) return;
+            
+            setTimeout(() => {
+                touchControls.screenWidth = canvas.clientWidth;
+                touchControls.screenHeight = canvas.clientHeight;
+                console.log('🔄 Touch zones updated:', touchControls.screenWidth + 'x' + touchControls.screenHeight);
+            }, 100); // Small delay for orientation change completion
+        }
+        
+        // Core touch event handlers with multi-touch support
+        function handleTouchStart(e) {
+            const startTime = performance.now();
+            e.preventDefault(); // Prevent scrolling/zooming
+            
+            if (!game.running || !touchControls.enabled) return;
+            
+            performanceMonitor.touchEventCount++;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.clientWidth / rect.width;
+            const scaleY = canvas.clientHeight / rect.height;
+            
+            Array.from(e.changedTouches).forEach(touch => {
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+                
+                processTouchZone(touch.identifier, touchX, touchY, 'start');
+            });
+            
+            trackInputLatency(startTime);
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault(); // Prevent scrolling
+            
+            if (!game.running || !touchControls.enabled) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.clientWidth / rect.width;
+            const scaleY = canvas.clientHeight / rect.height;
+            
+            Array.from(e.changedTouches).forEach(touch => {
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+                
+                processTouchZone(touch.identifier, touchX, touchY, 'move');
+            });
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            
+            Array.from(e.changedTouches).forEach(touch => {
+                releaseTouchZone(touch.identifier);
+            });
+        }
+        
+        function handleTouchCancel(e) {
+            e.preventDefault();
+            
+            Array.from(e.changedTouches).forEach(touch => {
+                releaseTouchZone(touch.identifier);
+            });
+        }
+        
+        // Intelligent touch zone processing
+        function processTouchZone(touchId, x, y, eventType) {
+            const leftBoundary = touchControls.screenWidth * 0.5; // Left 50% of screen
+            const jumpTapThreshold = 150; // ms for tap vs hold detection
+            
+            if (x < leftBoundary) {
+                // Left movement zone
+                if (!touchControls.leftZone.active || touchControls.leftZone.touchId === touchId) {
+                    touchControls.leftZone.active = true;
+                    touchControls.leftZone.touchId = touchId;
+                    
+                    // Trigger jump on tap, movement on hold
+                    if (eventType === 'start') {
+                        if (player.onGround) {
+                            // Immediate jump response for better feel
+                            player.velocityY = player.jumpPower;
+                            player.onGround = false;
+                            player.hasJumped = true;
+                        }
+                        
+                        // Start left movement after brief delay to distinguish tap vs hold
+                        setTimeout(() => {
+                            if (touchControls.leftZone.active && touchControls.leftZone.touchId === touchId) {
+                                game.keys['TouchLeft'] = true;
+                            }
+                        }, jumpTapThreshold);
+                    }
+                }
+            } else {
+                // Right movement zone  
+                if (!touchControls.rightZone.active || touchControls.rightZone.touchId === touchId) {
+                    touchControls.rightZone.active = true;
+                    touchControls.rightZone.touchId = touchId;
+                    
+                    // Trigger jump on tap, movement on hold
+                    if (eventType === 'start') {
+                        if (player.onGround) {
+                            // Immediate jump response for better feel
+                            player.velocityY = player.jumpPower;
+                            player.onGround = false;
+                            player.hasJumped = true;
+                        }
+                        
+                        // Start right movement after brief delay
+                        setTimeout(() => {
+                            if (touchControls.rightZone.active && touchControls.rightZone.touchId === touchId) {
+                                game.keys['TouchRight'] = true;
+                            }
+                        }, jumpTapThreshold);
+                    }
+                }
+            }
+        }
+        
+        // Clean touch zone release
+        function releaseTouchZone(touchId) {
+            if (touchControls.leftZone.touchId === touchId) {
+                touchControls.leftZone.active = false;
+                touchControls.leftZone.touchId = null;
+                game.keys['TouchLeft'] = false;
+            }
+            
+            if (touchControls.rightZone.touchId === touchId) {
+                touchControls.rightZone.active = false;
+                touchControls.rightZone.touchId = null;
+                game.keys['TouchRight'] = false;
+            }
+        }
+        
+        // Legacy click support for non-touch devices
+        canvas.addEventListener('click', legacyClickHandler);
         
         function updatePlayer() {
             if (!game.running) return;
             
-            // Handle input
-            if (game.keys['ArrowLeft'] || game.keys['KeyA']) {
+            // Handle input (keyboard + touch unified)
+            if (game.keys['ArrowLeft'] || game.keys['KeyA'] || game.keys['TouchLeft']) {
                 player.velocityX = -player.speed;
-            } else if (game.keys['ArrowRight'] || game.keys['KeyD']) {
+            } else if (game.keys['ArrowRight'] || game.keys['KeyD'] || game.keys['TouchRight']) {
                 player.velocityX = player.speed;
             } else {
                 player.velocityX *= 0.8; // Friction
@@ -1403,11 +1790,14 @@
             updateLava();
             draw();
             updateUI();
+            updatePerformanceMetrics(); // Performance monitoring
             requestAnimationFrame(gameLoop);
         }
         
         // Initialize game
         generateInitialPlatforms();
+        initializeTouchControls(); // Initialize mobile touch controls
+        enablePerformanceMonitoring(); // Enable performance tracking if debug mode
         gameLoop();
         
         // Buy Lives Modal Functions
