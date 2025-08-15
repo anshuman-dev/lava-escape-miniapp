@@ -521,16 +521,16 @@
         
         // Import wagmi and viem
         import { createConfig, http, getAccount, readContract, writeContract, waitForTransactionReceipt } from 'https://esm.sh/@wagmi/core';
-        import { base, baseSepolia } from 'https://esm.sh/wagmi/chains';
+        import { base } from 'https://esm.sh/wagmi/chains';
         import { createPublicClient } from 'https://esm.sh/viem';
         // BasePay temporarily disabled for testnet testing
         window.basePayReady = false;
         
         // Smart contract addresses (will be updated after deployment)
         window.CONTRACTS = {
-            LIVES: '0x5ce6ed6fbe544aba92dfb7850613e407781256f1', 
-            LEADERBOARD: '0xb11e64dc3835197c499fa894465891f3583780d6', 
-            USDC: window.PRICING.USDC_TESTNET // Using testnet USDC for now
+            LIVES: '0xcEBb1339E6527C445c9496fF76E645E6600A3Ef5', 
+            LEADERBOARD: '0x17b20C8d1A3f41fB3C2060C8e43Ba2E2E518fe7E', 
+            USDC: window.PRICING.USDC_MAINNET // Using mainnet USDC
         };
         const CONTRACTS = window.CONTRACTS;
         
@@ -585,9 +585,9 @@
         
         // Configure wagmi for Base L2
         const config = createConfig({
-            chains: [baseSepolia],
+            chains: [base],
             transports: {
-                [baseSepolia.id]: http(),
+                [base.id]: http(),
             },
         });
         
@@ -1523,7 +1523,7 @@
                 // Use Farcaster's native sendToken action for seamless payment  
                 // WARNING: Using testnet format only to prevent mainnet transactions
                 const result = await window.farcasterSDK.actions.sendToken({
-                    token: `eip155:84532/erc20:${window.PRICING.USDC_TESTNET}`, // Base Sepolia USDC only
+                    token: `eip155:8453/erc20:${window.PRICING.USDC_MAINNET}`, // Base Mainnet USDC
                     amount: totalUsdcAmount,
                     recipientAddress: window.CONTRACTS.LIVES
                 });
