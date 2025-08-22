@@ -924,13 +924,16 @@
                 isInMiniApp: window.isInMiniApp
             });
             
-            if (!isWalletMode && !isInFarcaster) {
+            // TEMP FIX: Always show modal for testing
+            const forceShowModal = true;
+            
+            if (!forceShowModal && !isWalletMode && !isInFarcaster) {
                 console.log('🌐 Payment not available - not in Farcaster environment');
                 return;
             }
             
             // If we're in Farcaster but wallet isn't initialized, try to initialize it
-            if (!isWalletMode && isInFarcaster) {
+            if (!forceShowModal && !isWalletMode && isInFarcaster) {
                 console.log('🔄 In Farcaster but wallet not initialized, attempting initialization...');
                 initializeWallet().then((success) => {
                     if (success) {
@@ -943,6 +946,7 @@
                 return;
             }
             
+            console.log('🎮 Showing buy lives modal...');
             document.getElementById('buyLivesModal').style.display = 'flex';
             document.getElementById('paymentStatus').innerHTML = '';
             document.getElementById('purchaseBtn').disabled = false;
@@ -1106,10 +1110,16 @@
                 console.log('🎮 Game start blocked - no lives. Wallet mode check:', {
                     isWalletMode: window.isWalletMode,
                     isInFarcaster: isInFarcaster,
-                    userAddress: window.userAddress
+                    userAddress: window.userAddress,
+                    farcasterSDK: !!window.farcasterSDK,
+                    isInMiniApp: window.isInMiniApp,
+                    userAgent: navigator.userAgent
                 });
                 
-                if (window.isWalletMode || isInFarcaster) {
+                // TEMP FIX: Always show payment option - remove this after testing
+                const forcePaymentMode = true;
+                
+                if (window.isWalletMode || isInFarcaster || forcePaymentMode) {
                     document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
                     document.getElementById('continueBtn').textContent = "Buy Lives";
                     document.getElementById('continueBtn').onclick = window.showBuyLivesModal;
@@ -1795,10 +1805,15 @@
                 console.log('🎮 Game over - checking for payment modal. Wallet mode check:', {
                     isWalletMode: window.isWalletMode,
                     isInFarcaster: isInFarcaster,
-                    userAddress: window.userAddress
+                    userAddress: window.userAddress,
+                    farcasterSDK: !!window.farcasterSDK,
+                    isInMiniApp: window.isInMiniApp
                 });
                 
-                if (window.isWalletMode || isInFarcaster) {
+                // TEMP FIX: Always show payment modal - remove after testing
+                const forcePaymentMode = true;
+                
+                if (window.isWalletMode || isInFarcaster || forcePaymentMode) {
                     setTimeout(() => {
                         window.showBuyLivesModal();
                     }, 1000);
