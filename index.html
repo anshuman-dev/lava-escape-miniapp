@@ -490,7 +490,7 @@
         import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
         
         // Global state
-        window.window.isInMiniApp = false;
+        window.isInMiniApp = false;
         let readyCalled = false;
         let userContext = null;
         
@@ -517,9 +517,9 @@
                 updateDebugStatus('sdkStatus', 'Loading MiniApp SDK...');
                 
                 // Check if we're in a mini app environment
-                window.window.isInMiniApp = await sdk.window.isInMiniApp();
-                console.log('🎯 Mini app status:', window.window.isInMiniApp);
-                updateDebugStatus('envStatus', window.window.isInMiniApp ? 'Farcaster MiniApp' : 'Regular Browser');
+                window.isInMiniApp = await sdk.window.isInMiniApp();
+                console.log('🎯 Mini app status:', window.isInMiniApp);
+                updateDebugStatus('envStatus', window.isInMiniApp ? 'Farcaster MiniApp' : 'Regular Browser');
                 
                 if (window.isInMiniApp) {
                     // Get user context
@@ -1758,22 +1758,11 @@
                 
                 document.getElementById('gameOver').style.display = 'block';
                 
-                // Show buy lives modal if in Farcaster wallet mode
-                const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
-                
-                console.log('🎮 Game over - checking for payment modal. Wallet mode check:', {
-                    isWalletMode: window.isWalletMode,
-                    isInFarcaster: isInFarcaster,
-                    userAddress: window.userAddress,
-                    farcasterSDK: !!window.farcasterSDK,
-                    isInMiniApp: window.isInMiniApp
-                });
-                
-                if (window.isWalletMode || isInFarcaster) {
-                    setTimeout(() => {
-                        window.showBuyLivesModal();
-                    }, 1000);
-                }
+                // Always show payment modal when out of lives
+                console.log('🎮 Game over - showing payment modal');
+                setTimeout(() => {
+                    window.showBuyLivesModal();
+                }, 1500);
             } else {
                 // Still have lives - show continue screen
                 console.log('❤️ Life used, showing continue screen...');
