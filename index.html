@@ -849,19 +849,21 @@
                 statusEl.style.background = 'rgba(255, 165, 0, 0.2)';
                 statusEl.style.color = '#FFA500';
                 
-                // Step 1: USDC approval
+                // Step 1: USDC approval using the Ethereum provider
+                const provider = await window.farcasterSDK.wallet.getEthereumProvider();
+                
                 const approveCalldata = encodeFunctionData({
                     abi: USDC_ABI,
                     functionName: 'approve',
                     args: [CONTRACTS.LIVES, BigInt(totalUSDC)]
                 });
                 
-                const approveResult = await window.farcasterSDK.wallet.request({
+                const approveResult = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
-                    to: CONTRACTS.USDC,
-                    data: approveCalldata,
-                    value: '0x0'
+                        to: CONTRACTS.USDC,
+                        data: approveCalldata,
+                        value: '0x0'
                     }]
                 });
                 
@@ -874,19 +876,19 @@
                 
                 statusEl.innerHTML = '⏳ Step 2: Purchasing lives...';
                 
-                // Step 2: Purchase lives
+                // Step 2: Purchase lives using the same provider
                 const buyCalldata = encodeFunctionData({
                     abi: LIVES_ABI,
                     functionName: 'buyLivesWithUSDC',
                     args: [amount]
                 });
                 
-                const buyResult = await window.farcasterSDK.wallet.request({
+                const buyResult = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
-                    to: CONTRACTS.LIVES,
-                    data: buyCalldata,
-                    value: '0x0'
+                        to: CONTRACTS.LIVES,
+                        data: buyCalldata,
+                        value: '0x0'
                     }]
                 });
                 
