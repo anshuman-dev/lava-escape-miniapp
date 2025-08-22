@@ -856,18 +856,21 @@
                     args: [CONTRACTS.LIVES, BigInt(totalUSDC)]
                 });
                 
-                const approveResult = await window.farcasterSDK.wallet.sendTransaction({
+                const approveResult = await window.farcasterSDK.wallet.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
                     to: CONTRACTS.USDC,
                     data: approveCalldata,
-                    value: '0'
+                    value: '0x0'
+                    }]
                 });
                 
-                if (!approveResult.success) {
-                    throw new Error('USDC approval failed: ' + (approveResult.reason || 'Unknown error'));
+                if (!approveResult) {
+                    throw new Error('USDC approval failed: No transaction hash returned');
                 }
                 
-                console.log('✅ USDC approved:', approveResult.transactionId);
-                await waitForTransactionConfirmation(approveResult.transactionId);
+                console.log('✅ USDC approved:', approveResult);
+                await waitForTransactionConfirmation(approveResult);
                 
                 statusEl.innerHTML = '⏳ Step 2: Purchasing lives...';
                 
@@ -878,20 +881,23 @@
                     args: [amount]
                 });
                 
-                const buyResult = await window.farcasterSDK.wallet.sendTransaction({
+                const buyResult = await window.farcasterSDK.wallet.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
                     to: CONTRACTS.LIVES,
                     data: buyCalldata,
-                    value: '0'
+                    value: '0x0'
+                    }]
                 });
                 
-                if (!buyResult.success) {
-                    throw new Error('Lives purchase failed: ' + (buyResult.reason || 'Unknown error'));
+                if (!buyResult) {
+                    throw new Error('Lives purchase failed: No transaction hash returned');
                 }
                 
-                console.log('✅ Lives purchased:', buyResult.transactionId);
+                console.log('✅ Lives purchased:', buyResult);
                 statusEl.innerHTML = '⏳ Confirming transaction...';
                 
-                await waitForTransactionConfirmation(buyResult.transactionId);
+                await waitForTransactionConfirmation(buyResult);
                 
                 statusEl.innerHTML = '⏳ Refreshing lives...';
                 
