@@ -373,7 +373,7 @@
                 <span id="userInfo">Playing in Farcaster!</span>
             </div>
             <div class="stats">
-                <span>❤️ Lives: <span id="lives">3</span></span>
+                <span>❤️ Lives: <span id="lives">0</span></span>
                 <span>Jumps: <span id="jumps">0</span></span>
                 <span>Level: <span id="level">1</span></span>
                 <span>Speed: <span id="speed">1.0x</span></span>
@@ -423,7 +423,7 @@
             <p id="gameOverMessage">You couldn't escape in time!</p>
             <p>Final Jumps: <span id="finalJumps">0</span></p>
             <p>Level Reached: <span id="finalLevel">1</span></p>
-            <button class="btn" onclick="restartGame()">🔄 Try Again</button>
+            <button class="btn" onclick="window.showBuyLivesModal()">💳 Buy More Lives</button>
         </div>
         
         
@@ -697,7 +697,7 @@
         
         // Global state
         let userAddress = null;
-        let userLives = 3; // Default for browser mode
+        let userLives = 0; // Start with 0 lives - must purchase to play
         let isWalletMode = false;
         
         // Make constants globally available
@@ -731,8 +731,8 @@
             }
             
             // Fallback to browser mode
-            console.log('🌐 Using browser mode - setting 3 lives');
-            userLives = 3;
+            console.log('🌐 Using browser mode - starting with 0 lives');
+            userLives = 0;
             updateLivesDisplay();
             return false;
         }
@@ -1153,27 +1153,12 @@
         function startGame() {
             // Check if player can start
             if (!canStartGame()) {
-                // Re-check wallet mode in case initialization completed after this was called
-                const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
+                console.log('🎮 Game start blocked - no lives. Showing payment option.');
                 
-                console.log('🎮 Game start blocked - no lives. Wallet mode check:', {
-                    isWalletMode: window.isWalletMode,
-                    isInFarcaster: isInFarcaster,
-                    userAddress: window.userAddress,
-                    farcasterSDK: !!window.farcasterSDK,
-                    isInMiniApp: window.isInMiniApp,
-                    userAgent: navigator.userAgent
-                });
-                
-                if (window.isWalletMode || isInFarcaster) {
-                    document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
-                    document.getElementById('continueBtn').textContent = "Buy Lives";
-                    document.getElementById('continueBtn').onclick = window.showBuyLivesModal;
-                } else {
-                    document.getElementById('introText').textContent = "❌ No lives remaining! Restart the game to get new lives.";
-                    document.getElementById('continueBtn').textContent = "Restart Game";
-                    document.getElementById('continueBtn').onclick = restartGame;
-                }
+                // ALWAYS show payment option - no restart allowed
+                document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
+                document.getElementById('continueBtn').textContent = "Buy Lives";
+                document.getElementById('continueBtn').onclick = window.showBuyLivesModal;
                 return;
             }
             
@@ -1917,73 +1902,7 @@
             }
         }
         
-        function restartGame() {
-            // Preserve first-time status
-            const wasFirstTime = game.firstTimePlayer;
-            
-            // Reset lives to 3
-            userLives = 3;
-            updateLivesDisplay();
-            
-            game = {
-                jumps: 0,
-                level: 1,
-                lavaSpeed: 0.5,
-                lavaHeight: 0,
-                running: false,
-                introStep: 0,
-                keys: {},
-                gameStarted: false,
-                cameraY: 0,
-                highestPlayerY: 460,
-                deathReason: "burned",
-                deathTimer: 0,
-                dyingState: false,
-                firstTimePlayer: wasFirstTime, // Preserve first-time status
-                levelNotification: {
-                    show: false,
-                    level: 1,
-                    timer: 0
-                }
-            };
-            
-            window.game = game; // Update global reference
-            
-            player = {
-                x: 180,
-                y: 460,
-                width: 8,
-                height: 16,
-                velocityX: 0,
-                velocityY: 0,
-                onGround: true,
-                jumpPower: -15,
-                speed: 5,
-                hasJumped: false
-            };
-            
-            platforms = [];
-            highestPlatform = 480;
-            
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('introScreen').style.display = 'block';
-            
-            // Set button behavior based on whether it's first time
-            if (wasFirstTime) {
-                // First time - show full intro sequence
-                document.getElementById('introText').textContent = "Everything seems normal...";
-                document.getElementById('continueBtn').textContent = "Continue";
-                document.getElementById('continueBtn').className = "btn";
-                document.getElementById('continueBtn').onclick = nextIntroStep; // Use intro sequence
-                game.introStep = 0; // Reset intro step
-            } else {
-                // Not first time - direct restart
-                document.getElementById('introText').textContent = "🎮 Ready to escape the lava again?";
-                document.getElementById('continueBtn').textContent = "Let's Go!";
-                document.getElementById('continueBtn').className = "btn";
-                document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
-            }
-        }
+        // Restart function removed - users must purchase lives to continue
         
         function gameLoop() {
             if (!game.running) {
