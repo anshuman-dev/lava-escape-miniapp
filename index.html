@@ -171,19 +171,6 @@
             border-radius: 3px;
         }
         
-        .buy-lives-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
         .modal-content {
             background: #1a1a2e;
             padding: 20px;
@@ -193,20 +180,6 @@
             color: #fff;
             max-width: 400px;
             width: 90%;
-        }
-        
-        .lives-options {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-        
-        .lives-options .btn {
-            font-size: 10px;
-            padding: 8px 12px;
-            margin: 0;
         }
         
         .leaderboard-modal {
@@ -383,46 +356,6 @@
             <button class="btn" onclick="restartGame()">🔄 Try Again</button>
         </div>
         
-        <div class="buy-lives-modal" id="buyLivesModal" style="display: none;">
-            <div class="modal-content">
-                <h3>💀 Out of Lives!</h3>
-                <p>Purchase more lives to continue playing:</p>
-                
-                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0;">
-                    <button class="btn" onclick="decrementLives()" id="decrementBtn">-</button>
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="font-size: 24px; font-weight: bold; color: #00ff88;" id="livesCounter">1</div>
-                        <div style="font-size: 12px; color: #ccc;">Lives</div>
-                    </div>
-                    <button class="btn" onclick="incrementLives()" id="incrementBtn">+</button>
-                </div>
-                
-                <div style="text-align: center; margin: 15px 0;">
-                    <div style="font-size: 18px; color: #fff;" id="totalPrice">$0.30 per life</div>
-                    <div style="font-size: 12px; color: #ccc;">Base Sepolia Testnet</div>
-                </div>
-                
-                <!-- Primary USDC Payment Button -->
-                <button class="btn" onclick="buyLivesWithUSDC()" style="background: #0052FF; border: 2px solid #0052FF; border-radius: 12px; color: white; font-weight: 600; width: 100%; margin: 10px 0; padding: 12px; cursor: pointer;">
-                    💳 Pay with USDC (Recommended)
-                </button>
-                
-                <!-- Secondary ETH Payment Button -->
-                <button class="btn" onclick="buyLivesWithETH(livesToPurchase)" style="background: #ff6b6b; border: 2px solid #ff6b6b; border-radius: 12px; color: white; font-weight: 600; width: 100%; margin: 5px 0; padding: 10px; cursor: pointer; opacity: 0.8;">
-                    ⚡ Pay with ETH
-                </button>
-                
-                <!-- Testing Mode Button -->
-                <button class="btn" onclick="buyLivesSimulated()" style="background: #666; border: 2px solid #666; border-radius: 8px; color: #ccc; font-weight: 400; width: 100%; margin: 5px 0; padding: 8px; cursor: pointer; font-size: 14px;">
-                    🎮 Testing Mode (Free)
-                </button>
-                
-                <button class="btn danger-btn" onclick="closeBuyLivesModal()">
-                    ❌ No Thanks
-                </button>
-                <div id="purchaseStatus" style="margin-top: 10px;"></div>
-            </div>
-        </div>
         
         <div class="leaderboard-modal" id="leaderboardModal" style="display: none;">
             <div class="modal-content">
@@ -592,269 +525,10 @@
         
     </script>
 
-    <!-- BASE L2 BLOCKCHAIN INTEGRATION -->
-    <script type="module">
-        // 🔗 BASE L2 BLOCKCHAIN INTEGRATION
-        console.log('⛓️ Initializing Base L2 integration...');
-        
-        // Import wagmi and viem
-        import { createConfig, http, getAccount, readContract, writeContract, waitForTransactionReceipt } from 'https://esm.sh/@wagmi/core';
-        import { base } from 'https://esm.sh/wagmi/chains';
-        import { createPublicClient } from 'https://esm.sh/viem';
-        // BasePay temporarily disabled for testnet testing
-        window.basePayReady = false;
-        
-        // Smart contract addresses (will be updated after deployment)
-        window.CONTRACTS = {
-            LIVES: '0xcEBb1339E6527C445c9496fF76E645E6600A3Ef5', 
-            LEADERBOARD: '0x17b20C8d1A3f41fB3C2060C8e43Ba2E2E518fe7E', 
-            USDC: window.PRICING.USDC_MAINNET // Using mainnet USDC
-        };
-        const CONTRACTS = window.CONTRACTS;
-        
-        // Contract ABIs (simplified for essential functions)
-        const LIVES_ABI = [
-            {
-                "inputs": [{"name": "amount", "type": "uint8"}],
-                "name": "buyLives",
-                "outputs": [],
-                "stateMutability": "payable",
-                "type": "function"
-            },
-            {
-                "inputs": [{"name": "amount", "type": "uint8"}],
-                "name": "buyLivesWithUSDC",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [{"name": "player", "type": "address"}],
-                "name": "getLives",
-                "outputs": [{"name": "", "type": "uint8"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [{"name": "player", "type": "address"}],
-                "name": "useLive",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ];
-        
-        const LEADERBOARD_ABI = [
-            {
-                "inputs": [{"name": "jumps", "type": "uint256"}],
-                "name": "submitScore",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "getLeaderboard",
-                "outputs": [{"components": [{"name": "player", "type": "address"}, {"name": "jumps", "type": "uint256"}, {"name": "timestamp", "type": "uint256"}], "name": "", "type": "tuple[]"}],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-        
-        // Configure wagmi for Base L2
-        const config = createConfig({
-            chains: [base],
-            transports: {
-                [base.id]: http(),
-            },
-        });
-        
-        // Global blockchain state
-        let ethereumProvider = null;
-        let userAddress = null;
-        let userLives = 3; // Default lives
-        
-        // Initialize blockchain functionality
-        async function initializeBlockchain() {
-            try {
-                // Get Ethereum provider from Farcaster SDK
-                if (window.farcasterSDK && window.isInMiniApp) {
-                    ethereumProvider = await window.farcasterSDK.wallet.getEthereumProvider();
-                    console.log('🔗 Ethereum provider obtained from Farcaster');
-                    
-                    // Get user address
-                    const accounts = await ethereumProvider.request({
-                        method: 'eth_accounts'
-                    });
-                    
-                    if (accounts && accounts.length > 0) {
-                        userAddress = accounts[0];
-                        console.log('👛 User address:', userAddress);
-                        
-                        // Load user's lives from contract
-                        await loadUserLives();
-                    }
-                } else {
-                    console.log('🌐 No Farcaster wallet available, using browser mode');
-                }
-            } catch (error) {
-                console.error('⚠️ Blockchain initialization failed:', error);
-            }
-        }
-        
-        // Load user's lives from smart contract
-        async function loadUserLives() {
-            if (!userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
-                console.log('📝 Contract not deployed yet, using default lives');
-                return;
-            }
-            
-            try {
-                const lives = await readContract(config, {
-                    address: window.CONTRACTS.LIVES,
-                    abi: LIVES_ABI,
-                    functionName: 'getLives',
-                    args: [userAddress],
-                });
-                
-                userLives = parseInt(lives.toString());
-                console.log('❤️ User lives loaded:', userLives);
-                updateLivesDisplay();
-            } catch (error) {
-                console.error('⚠️ Failed to load lives:', error);
-                userLives = 3; // Default fallback
-            }
-        }
-        
-        // Buy lives with ETH
-        async function buyLives(amount = 1) {
-            if (!ethereumProvider || !userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
-                console.log('⚠️ Blockchain not available for purchase');
-                return false;
-            }
-            
-            try {
-                const totalPrice = (BigInt(window.PRICING.ETH_PER_LIFE) * BigInt(amount)).toString();
-                
-                const hash = await writeContract(config, {
-                    address: window.CONTRACTS.LIVES,
-                    abi: LIVES_ABI,
-                    functionName: 'buyLives',
-                    args: [amount],
-                    value: totalPrice,
-                });
-                
-                console.log('⏳ Transaction submitted:', hash);
-                
-                // Wait for confirmation
-                await waitForTransactionReceipt(config, { hash });
-                
-                console.log('✅ Lives purchased successfully!');
-                await loadUserLives(); // Refresh lives count
-                return true;
-            } catch (error) {
-                console.error('⚠️ Failed to buy lives:', error);
-                
-                // Show user-friendly error message
-                let errorMessage = 'Failed to purchase lives. ';
-                if (error.message?.includes('insufficient funds')) {
-                    errorMessage += 'Insufficient ETH balance.';
-                } else if (error.message?.includes('user rejected')) {
-                    errorMessage += 'Transaction was cancelled.';
-                } else if (error.message?.includes('Would exceed max lives')) {
-                    errorMessage += 'Would exceed maximum lives (255).';
-                } else {
-                    errorMessage += 'Please try again.';
-                }
-                
-                alert(errorMessage);
-                return false;
-            }
-        }
-        
-        // Use a life (called when game over)
-        async function useLive() {
-            if (!ethereumProvider || !userAddress || window.CONTRACTS.LIVES === '0x0000000000000000000000000000000000000000') {
-                // Offline mode - just decrement locally
-                if (userLives > 0) {
-                    userLives--;
-                    updateLivesDisplay();
-                    return true;
-                }
-                return false;
-            }
-            
-            try {
-                const hash = await writeContract(config, {
-                    address: window.CONTRACTS.LIVES,
-                    abi: LIVES_ABI,
-                    functionName: 'useLive',
-                    args: [userAddress],
-                });
-                
-                await waitForTransactionReceipt(config, { hash });
-                await loadUserLives(); // Refresh lives count
-                return true;
-            } catch (error) {
-                console.error('⚠️ Failed to use life:', error);
-                // Fallback to local decrement
-                if (userLives > 0) {
-                    userLives--;
-                    updateLivesDisplay();
-                    return true;
-                }
-                return false;
-            }
-        }
-        
-        // Submit score to leaderboard
-        async function submitScore(jumps, level) {
-            if (!ethereumProvider || !userAddress || window.CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
-                console.log('📊 Leaderboard contract not available');
-                return false;
-            }
-            
-            try {
-                const hash = await writeContract(config, {
-                    address: window.CONTRACTS.LEADERBOARD,
-                    abi: LEADERBOARD_ABI,
-                    functionName: 'submitScore',
-                    args: [jumps, level || 1],
-                });
-                
-                await waitForTransactionReceipt(config, { hash });
-                console.log('✅ Score submitted to leaderboard!');
-                return true;
-            } catch (error) {
-                console.error('⚠️ Failed to submit score:', error);
-                return false;
-            }
-        }
-        
-        // Get leaderboard data
-        async function getLeaderboard() {
-            if (window.CONTRACTS.LEADERBOARD === '0x0000000000000000000000000000000000000000') {
-                // Return mock data for testing
-                return [
-                    { player: '0x1234...5678', jumps: 125, timestamp: Date.now(), level: 8 },
-                    { player: '0x9876...4321', jumps: 98, timestamp: Date.now(), level: 6 },
-                    { player: '0xabcd...ef01', jumps: 87, timestamp: Date.now(), level: 5 }
-                ];
-            }
-            
-            try {
-                const leaderboard = await readContract(config, {
-                    address: window.CONTRACTS.LEADERBOARD,
-                    abi: LEADERBOARD_ABI,
-                    functionName: 'getLeaderboard',
-                });
-                
-                return leaderboard;
-            } catch (error) {
-                console.error('⚠️ Failed to get leaderboard:', error);
-                return [];
-            }
-        }
+    <!-- SIMPLE GAME STATE MANAGEMENT -->
+    <script>
+        // Simple lives management - no blockchain complexity
+        let userLives = 3; // Default lives for browser mode
         
         // Update lives display in UI
         function updateLivesDisplay() {
@@ -864,25 +538,28 @@
             }
         }
         
+        // Use a life (called when game over)
+        function useLive() {
+            if (userLives > 0) {
+                userLives--;
+                updateLivesDisplay();
+                return true;
+            }
+            return false;
+        }
+        
+        // Simple leaderboard mock data
+        async function getLeaderboard() {
+            return [
+                { player: '0x1234...5678', jumps: 125, timestamp: Date.now(), level: 8 },
+                { player: '0x9876...4321', jumps: 98, timestamp: Date.now(), level: 6 },
+                { player: '0xabcd...ef01', jumps: 87, timestamp: Date.now(), level: 5 }
+            ];
+        }
+        
         // Make functions globally available
         window.updateLivesDisplay = updateLivesDisplay;
-        window.basePayReady = false; // Initialize globally
-        window.blockchain = {
-            initializeBlockchain,
-            loadUserLives,
-            buyLives,
-            useLive,
-            submitScore,
-            getLeaderboard,
-            getUserLives: () => userLives,
-            getUserAddress: () => userAddress,
-            isWalletConnected: () => !!userAddress,
-            get userLives() { return userLives; },
-            set userLives(value) { userLives = value; }
-        };
-        
-        // Initialize after a short delay to ensure Farcaster SDK is ready
-        setTimeout(initializeBlockchain, 2000);
+        window.getLeaderboard = getLeaderboard;
         
     </script>
 
@@ -960,9 +637,9 @@
         function startGame() {
             // Check if player can start
             if (!canStartGame()) {
-                document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
-                document.getElementById('continueBtn').textContent = "Buy Lives";
-                document.getElementById('continueBtn').onclick = showBuyLivesModal;
+                document.getElementById('introText').textContent = "❌ No lives remaining! Restart the game to get new lives.";
+                document.getElementById('continueBtn').textContent = "Restart Game";
+                document.getElementById('continueBtn').onclick = restartGame;
                 return;
             }
             
@@ -976,14 +653,6 @@
             initializeLivesDisplay();
         }
         
-        // Show payment success screen with continue option
-        function showPaymentSuccessScreen() {
-            document.getElementById('introScreen').style.display = 'block';
-            document.getElementById('introText').textContent = "🎉 Lives purchased! Ready to continue your escape?";
-            document.getElementById('continueBtn').textContent = "Let's Continue!";
-            document.getElementById('continueBtn').className = "btn";
-            document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
-        }
         
         function generateInitialPlatforms() {
             platforms = [];
@@ -1617,15 +1286,12 @@
             document.getElementById('speed').textContent = game.lavaSpeed.toFixed(1) + 'x';
         }
         
-        async function gameOver() {
+        function gameOver() {
             game.running = false;
             game.dyingState = false;
             
             // Use a life
-            let canContinue = false;
-            if (window.blockchain) {
-                canContinue = await window.blockchain.useLive();
-            }
+            const canContinue = useLive();
             
             if (!canContinue) {
                 // No lives left - show game over
@@ -1643,26 +1309,12 @@
                 document.getElementById('finalJumps').textContent = game.jumps;
                 document.getElementById('finalLevel').textContent = game.level;
                 
-                // Try to submit score to leaderboard
-                if (window.blockchain && game.jumps >= 5) {
-                    try {
-                        await window.blockchain.submitScore(game.jumps, game.level);
-                    } catch (error) {
-                        console.log('Failed to submit score:', error);
-                    }
-                }
-                
                 document.getElementById('gameOver').style.display = 'block';
-                
-                // Show buy lives option if user has wallet connected
-                if (window.blockchain && window.blockchain.isWalletConnected()) {
-                    showBuyLivesModal();
-                }
             } else {
-                // Still have lives - show continue screen instead of auto-restart
+                // Still have lives - show continue screen
                 console.log('❤️ Life used, showing continue screen...');
                 
-                // Reset game state but don't auto-start (preserve first-time status)
+                // Reset game state but don't auto-start
                 const wasFirstTime = game.firstTimePlayer;
                 game = {
                     jumps: 0,
@@ -1678,7 +1330,7 @@
                     deathReason: "burned",
                     deathTimer: 0,
                     dyingState: false,
-                    firstTimePlayer: wasFirstTime, // Since they died, they're no longer first-time
+                    firstTimePlayer: wasFirstTime,
                     levelNotification: {
                         show: false,
                         level: 1,
@@ -1710,13 +1362,17 @@
                 document.getElementById('introText').textContent = "💀 Oops! You died but have lives remaining. Ready to try again?";
                 document.getElementById('continueBtn').textContent = "Try Again!";
                 document.getElementById('continueBtn').className = "btn";
-                document.getElementById('continueBtn').onclick = startGame; // Direct start, skip intro
+                document.getElementById('continueBtn').onclick = startGame;
             }
         }
         
         function restartGame() {
             // Preserve first-time status
             const wasFirstTime = game.firstTimePlayer;
+            
+            // Reset lives to 3
+            userLives = 3;
+            updateLivesDisplay();
             
             game = {
                 jumps: 0,
@@ -1800,284 +1456,15 @@
         enablePerformanceMonitoring(); // Enable performance tracking if debug mode
         gameLoop();
         
-        // Buy Lives Modal Functions
-        function closeBuyLivesModal() {
-            document.getElementById('buyLivesModal').style.display = 'none';
-            document.getElementById('purchaseStatus').innerHTML = '';
-        }
-        
-        async function buyLivesWithETH(amount) {
-            const statusEl = document.getElementById('purchaseStatus');
-            statusEl.innerHTML = '⏳ Processing ETH purchase...';
-            
-            try {
-                const success = await window.blockchain.buyLives(amount);
-                if (success) {
-                    statusEl.innerHTML = '✅ Lives purchased! Restarting game...';
-                    setTimeout(() => {
-                        closeBuyLivesModal();
-                        // Reset game state and show continue screen
-                        game = {
-                            jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
-                            running: false, introStep: 0, keys: {}, gameStarted: false,
-                            cameraY: 0, highestPlayerY: 460, deathReason: "burned",
-                            deathTimer: 0, dyingState: false,
-                            levelNotification: { show: false, level: 1, timer: 0 }
-                        };
-                        player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
-                        platforms = [];
-                        highestPlatform = 480;
-                        document.getElementById('gameOver').style.display = 'none';
-                        // Show continue screen after payment
-                        showPaymentSuccessScreen();
-                    }, 2000);
-                } else {
-                    statusEl.innerHTML = '❌ Purchase failed. Please try again.';
-                }
-            } catch (error) {
-                console.error('Purchase failed:', error);
-                statusEl.innerHTML = '❌ Purchase failed. Check console for details.';
-            }
-        }
-        
-        async function buyLivesWithUSDC(amount) {
-            const statusEl = document.getElementById('purchaseStatus');
-            statusEl.innerHTML = '⏳ Processing USDC purchase...';
-            
-            try {
-                // This would need USDC approval first in a real implementation
-                statusEl.innerHTML = '❌ USDC purchases not yet implemented.';
-            } catch (error) {
-                console.error('USDC Purchase failed:', error);
-                statusEl.innerHTML = '❌ Purchase failed. Check console for details.';
-            }
-        }
-
-        // Lives counter for purchase modal
-        let livesToPurchase = 1;
-
-        function incrementLives() {
-            if (livesToPurchase < 3) {
-                livesToPurchase++;
-                updatePurchaseDisplay();
-            }
-        }
-
-        function decrementLives() {
-            if (livesToPurchase > 1) {
-                livesToPurchase--;
-                updatePurchaseDisplay();
-            }
-        }
-
-        function updatePurchaseDisplay() {
-            document.getElementById('livesCounter').textContent = livesToPurchase;
-            document.getElementById('totalPrice').textContent = `$${(livesToPurchase * window.PRICING.USD_PER_LIFE).toFixed(2)}`;
-            
-            // Update button states
-            document.getElementById('decrementBtn').disabled = (livesToPurchase <= 1);
-            document.getElementById('incrementBtn').disabled = (livesToPurchase >= 3);
-        }
-
-        // Initialize purchase display when modal opens
-        function showBuyLivesModal() {
-            livesToPurchase = 1;
-            updatePurchaseDisplay();
-            document.getElementById('buyLivesModal').style.display = 'flex';
-        }
-
-        // Native Farcaster USDC payments using sendToken action
-        async function buyLivesWithUSDC() {
-            const statusEl = document.getElementById('purchaseStatus');
-            statusEl.innerHTML = '⚡ Preparing USDC payment...';
-            
-            // Check if Farcaster SDK is ready
-            if (!window.farcasterSDK) {
-                statusEl.innerHTML = '❌ Farcaster SDK not available. Falling back to ETH payment.';
-                setTimeout(() => buyLivesWithETH(livesToPurchase), 1000);
-                return;
-            }
-            
-            try {
-                // Calculate USDC amount using pricing constants
-                const totalUsdcAmount = (livesToPurchase * window.PRICING.USDC_PER_LIFE).toString();
-                
-                console.log('Initiating USDC payment via sendToken:', {
-                    amount: totalUsdcAmount,
-                    lives: livesToPurchase,
-                    recipientAddress: window.window.CONTRACTS.LIVES
-                });
-                
-                statusEl.innerHTML = '⏳ Opening Farcaster payment dialog...';
-                
-                // Use Farcaster's native sendToken action for seamless payment  
-                // WARNING: Using testnet format only to prevent mainnet transactions
-                const result = await window.farcasterSDK.actions.sendToken({
-                    token: `eip155:8453/erc20:${window.PRICING.USDC_MAINNET}`, // Base Mainnet USDC
-                    amount: totalUsdcAmount,
-                    recipientAddress: window.CONTRACTS.LIVES
-                });
-                
-                console.log('📤 SendToken result:', result);
-                
-                // Handle the actual response structure safely
-                if (result && result.success) {
-                    // Payment was successful - credit lives immediately
-                    statusEl.innerHTML = `✅ USDC payment successful!`;
-                    
-                    if (window.blockchain) {
-                        window.blockchain.userLives += livesToPurchase;
-                        updateLivesDisplay();
-                        statusEl.innerHTML = `✅ ${livesToPurchase} ${livesToPurchase === 1 ? 'life' : 'lives'} added! Game restarting...`;
-                        
-                        setTimeout(() => {
-                            closeBuyLivesModal();
-                            // Reset game state and show continue screen
-                            game = {
-                                jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
-                                running: false, introStep: 0, keys: {}, gameStarted: false,
-                                cameraY: 0, highestPlayerY: 460, deathReason: "burned",
-                                deathTimer: 0, dyingState: false,
-                                levelNotification: { show: false, level: 1, timer: 0 }
-                            };
-                            player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
-                            platforms = [];
-                            highestPlatform = 480;
-                            document.getElementById('gameOver').style.display = 'none';
-                            // Show continue screen after payment
-                            showPaymentSuccessScreen();
-                        }, 2000);
-                    }
-                } else if (result && result.transactionId) {
-                    statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.transactionId.slice(0, 10)}...`;
-                } else if (result && result.txHash) {
-                    statusEl.innerHTML = `⏳ USDC payment sent! TX: ${result.txHash.slice(0, 10)}...`;
-                } else if (result) {
-                    statusEl.innerHTML = `⏳ Payment dialog completed - checking status...`;
-                } else {
-                    statusEl.innerHTML = `❌ Payment failed or was cancelled`;
-                }
-                
-                // For now, we'll manually credit the lives since USDC transfers
-                // don't automatically trigger contract functions
-                const checkTransactionStatus = async () => {
-                    try {
-                        // Wait for blockchain confirmation
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        
-                        // Since sendToken just sends USDC to the contract but doesn't call 
-                        // buyLivesWithUSDC, we need to manually credit lives for now
-                        // In production, this would be handled by a backend service watching for USDC transfers
-                        
-                        statusEl.innerHTML = '⚠️ USDC payment sent! Lives will be credited manually. Please contact support if not received.';
-                        
-                        // For testnet, we'll simulate the credit locally
-                        if (window.blockchain) {
-                            window.blockchain.userLives += livesToPurchase;
-                            updateLivesDisplay();
-                            statusEl.innerHTML = `✅ ${livesToPurchase} ${livesToPurchase === 1 ? 'life' : 'lives'} credited! (Testnet simulation)`;
-                            
-                            setTimeout(() => {
-                                closeBuyLivesModal();
-                                // Reset game state and show continue screen
-                                game = {
-                                    jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
-                                    running: false, introStep: 0, keys: {}, gameStarted: false,
-                                    cameraY: 0, highestPlayerY: 460, deathReason: "burned",
-                                    deathTimer: 0, dyingState: false,
-                                    levelNotification: { show: false, level: 1, timer: 0 }
-                                };
-                                player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
-                                platforms = [];
-                                highestPlatform = 480;
-                                document.getElementById('gameOver').style.display = 'none';
-                                // Show continue screen after payment
-                                showPaymentSuccessScreen();
-                            }, 2000);
-                        }
-                        
-                    } catch (statusError) {
-                        console.error('Transaction status check failed:', statusError);
-                        statusEl.innerHTML = '⚠️ Payment sent but status unclear. Please check your lives or contact support.';
-                    }
-                };
-                
-                // Only run additional checks if payment wasn't immediately successful
-                if (!result || !result.success) {
-                    checkTransactionStatus();
-                }
-                
-            } catch (error) {
-                console.error('USDC payment failed:', error);
-                statusEl.innerHTML = '❌ USDC payment failed. Try ETH payment instead?';
-                
-                // Show specific error messages
-                if (error.message?.includes('user rejected')) {
-                    statusEl.innerHTML = '❌ Payment cancelled by user';
-                } else if (error.message?.includes('insufficient')) {
-                    statusEl.innerHTML = '❌ Insufficient USDC balance';
-                } else {
-                    statusEl.innerHTML = '❌ USDC payment failed. Try ETH payment instead?';
-                }
-            }
-        }
-        
-        // Simulated purchase for testnet debugging
-        async function buyLivesSimulated() {
-            const statusEl = document.getElementById('purchaseStatus');
-            statusEl.innerHTML = '🎮 Processing test purchase...';
-            
-            // Simulate purchase delay
-            setTimeout(() => {
-                if (window.blockchain) {
-                    const oldLives = window.blockchain.userLives;
-                    window.blockchain.userLives += livesToPurchase;
-                    const newLives = window.blockchain.userLives;
-                    
-                    window.updateLivesDisplay();
-                    statusEl.innerHTML = `✅ ${livesToPurchase} lives granted!`;
-                    
-                    setTimeout(() => {
-                        closeBuyLivesModal();
-                        // Reset game state and start directly
-                        game = {
-                            jumps: 0, level: 1, lavaSpeed: 0.5, lavaHeight: 0,
-                            running: false, introStep: 0, keys: {}, gameStarted: false,
-                            cameraY: 0, highestPlayerY: 460, deathReason: "burned",
-                            deathTimer: 0, dyingState: false,
-                            levelNotification: { show: false, level: 1, timer: 0 }
-                        };
-                        player = { x: 180, y: 460, width: 8, height: 16, velocityX: 0, velocityY: 0, onGround: true, jumpPower: -15, speed: 5, hasJumped: false };
-                        platforms = [];
-                        highestPlatform = 480;
-                        document.getElementById('gameOver').style.display = 'none';
-                        startGame(); // This will check lives and start immediately
-                    }, 1500);
-                } else {
-                    statusEl.innerHTML = '❌ Blockchain not initialized';
-                }
-            }, 500);
-        }
         
         // Initialize lives display when game starts
         function initializeLivesDisplay() {
-            if (window.blockchain) {
-                const lives = window.blockchain.getUserLives();
-                const livesEl = document.getElementById('lives');
-                if (livesEl) {
-                    livesEl.textContent = lives;
-                }
-            }
+            updateLivesDisplay();
         }
         
         // Check if player can start game
         function canStartGame() {
-            if (!window.blockchain) {
-                return true; // Browser mode - always allow
-            }
-            
-            const lives = window.blockchain.getUserLives();
-            return lives > 0;
+            return userLives > 0;
         }
         
         // Leaderboard Functions
