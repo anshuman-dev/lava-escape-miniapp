@@ -699,26 +699,40 @@
         async function initializeWallet() {
             try {
                 console.log('🔗 Initializing wallet...');
+                console.log('🔍 Debug info:', {
+                    farcasterSDK: !!window.farcasterSDK,
+                    isInMiniApp: window.isInMiniApp
+                });
                 
                 if (window.farcasterSDK && window.isInMiniApp) {
+                    console.log('🔗 Getting Ethereum provider...');
                     const provider = await window.farcasterSDK.wallet.getEthereumProvider();
                     const accounts = await provider.request({method: 'eth_accounts'});
+                    
+                    console.log('👛 Accounts found:', accounts);
                     
                     if (accounts && accounts.length > 0) {
                         userAddress = accounts[0];
                         isWalletMode = true;
-                        console.log('👛 Wallet connected:', userAddress);
+                        console.log('✅ Wallet mode enabled! Address:', userAddress);
                         
                         await refreshLivesFromContract();
                         return true;
+                    } else {
+                        console.log('⚠️ No accounts found in wallet');
                     }
+                } else {
+                    console.log('⚠️ Requirements not met:', {
+                        farcasterSDK: !!window.farcasterSDK,
+                        isInMiniApp: window.isInMiniApp
+                    });
                 }
             } catch (error) {
                 console.error('⚠️ Wallet initialization failed:', error);
             }
             
             // Fallback to browser mode
-            console.log('🌐 Using browser mode');
+            console.log('🌐 Using browser mode - setting 3 lives');
             userLives = 3;
             updateLivesDisplay();
             return false;
@@ -900,8 +914,32 @@
         
         // 🎮 MODAL MANAGEMENT
         function showBuyLivesModal() {
-            if (!isWalletMode) {
-                console.log('🌐 Payment not available in browser mode');
+            const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
+            
+            console.log('🎮 showBuyLivesModal called. Environment check:', {
+                isWalletMode,
+                isInFarcaster,
+                userAddress,
+                farcasterSDK: !!window.farcasterSDK,
+                isInMiniApp: window.isInMiniApp
+            });
+            
+            if (!isWalletMode && !isInFarcaster) {
+                console.log('🌐 Payment not available - not in Farcaster environment');
+                return;
+            }
+            
+            // If we're in Farcaster but wallet isn't initialized, try to initialize it
+            if (!isWalletMode && isInFarcaster) {
+                console.log('🔄 In Farcaster but wallet not initialized, attempting initialization...');
+                initializeWallet().then((success) => {
+                    if (success) {
+                        console.log('✅ Wallet initialized successfully, showing modal');
+                        showBuyLivesModal(); // Recursive call after successful initialization
+                    } else {
+                        console.log('❌ Wallet initialization failed');
+                    }
+                });
                 return;
             }
             
@@ -983,8 +1021,8 @@
         window.updatePriceDisplay = updatePriceDisplay;
         window.restartGameAfterPurchase = restartGameAfterPurchase;
         
-        // Initialize wallet after short delay
-        setTimeout(initializeWallet, 1000);
+        // Initialize wallet after SDK is ready
+        setTimeout(initializeWallet, 2000);
         
     </script>
 
@@ -1062,7 +1100,16 @@
         function startGame() {
             // Check if player can start
             if (!canStartGame()) {
-                if (window.isWalletMode) {
+                // Re-check wallet mode in case initialization completed after this was called
+                const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
+                
+                console.log('🎮 Game start blocked - no lives. Wallet mode check:', {
+                    isWalletMode: window.isWalletMode,
+                    isInFarcaster: isInFarcaster,
+                    userAddress: window.userAddress
+                });
+                
+                if (window.isWalletMode || isInFarcaster) {
                     document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
                     document.getElementById('continueBtn').textContent = "Buy Lives";
                     document.getElementById('continueBtn').onclick = window.showBuyLivesModal;
@@ -1743,7 +1790,15 @@
                 document.getElementById('gameOver').style.display = 'block';
                 
                 // Show buy lives modal if in Farcaster wallet mode
-                if (window.isWalletMode) {
+                const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
+                
+                console.log('🎮 Game over - checking for payment modal. Wallet mode check:', {
+                    isWalletMode: window.isWalletMode,
+                    isInFarcaster: isInFarcaster,
+                    userAddress: window.userAddress
+                });
+                
+                if (window.isWalletMode || isInFarcaster) {
                     setTimeout(() => {
                         window.showBuyLivesModal();
                     }, 1000);
