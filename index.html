@@ -672,20 +672,33 @@
             }
         ];
         
-        // Import blockchain utilities
-        import { createPublicClient, http, encodeFunctionData } from 'https://esm.sh/viem';
+        // Import Wagmi and Farcaster connector
+        import { createConfig, http, useAccount, useConnect, useDisconnect, useSendCalls } from 'https://esm.sh/wagmi';
+        import { createPublicClient, encodeFunctionData, parseUnits } from 'https://esm.sh/viem';
         import { base } from 'https://esm.sh/wagmi/chains';
+        import { farcasterMiniApp as miniAppConnector } from 'https://esm.sh/@farcaster/miniapp-wagmi-connector';
         
-        // Global state
-        let userAddress = null;
-        let userLives = 3; // Default for browser mode
-        let isWalletMode = false;
+        // Configure Wagmi with Farcaster connector
+        const wagmiConfig = createConfig({
+            chains: [base],
+            transports: {
+                [base.id]: http(),
+            },
+            connectors: [
+                miniAppConnector()
+            ]
+        });
         
         // Create public client for reading from blockchain
         const publicClient = createPublicClient({
             chain: base,
             transport: http()
         });
+        
+        // Global state
+        let userAddress = null;
+        let userLives = 3; // Default for browser mode
+        let isWalletMode = false;
         
         // Make constants globally available
         window.CONTRACTS = CONTRACTS;
@@ -695,37 +708,26 @@
         window.publicClient = publicClient;
         window.encodeFunctionData = encodeFunctionData;
         
-        // 🔗 WALLET INITIALIZATION
+        // 🔗 NEW WAGMI-BASED WALLET INITIALIZATION
         async function initializeWallet() {
             try {
-                console.log('🔗 Initializing wallet...');
-                console.log('🔍 Debug info:', {
-                    farcasterSDK: !!window.farcasterSDK,
-                    isInMiniApp: window.isInMiniApp
-                });
+                console.log('🔗 Initializing wallet with Wagmi connector...');
                 
-                if (window.farcasterSDK) {
-                    console.log('🔗 Getting Ethereum provider...');
-                    const provider = await window.farcasterSDK.wallet.getEthereumProvider();
-                    const accounts = await provider.request({method: 'eth_accounts'});
+                // Try to get wallet account using new approach
+                const account = await getWalletAccount();
+                
+                if (account.isConnected && account.address) {
+                    userAddress = account.address;
+                    isWalletMode = true;
+                    console.log('✅ Wallet connected via Wagmi! Address:', userAddress);
                     
-                    console.log('👛 Accounts found:', accounts);
-                    
-                    if (accounts && accounts.length > 0) {
-                        userAddress = accounts[0];
-                        isWalletMode = true;
-                        console.log('✅ Wallet mode enabled! Address:', userAddress);
-                        
-                        await refreshLivesFromContract();
-                        return true;
-                    } else {
-                        console.log('⚠️ No accounts found in wallet');
-                    }
+                    await refreshLivesFromContract();
+                    return true;
                 } else {
-                    console.log('⚠️ Farcaster SDK not available');
+                    console.log('⚠️ Wallet connection failed via Wagmi');
                 }
             } catch (error) {
-                console.error('⚠️ Wallet initialization failed:', error);
+                console.error('⚠️ Wagmi wallet initialization failed:', error);
             }
             
             // Fallback to browser mode
@@ -784,6 +786,91 @@
             ];
         }
         
+        // 🔗 WAGMI HELPER FUNCTIONS
+        
+        // Get wallet account information
+        async function getWalletAccount() {
+            try {
+                // Use the Wagmi connector to get account info
+                const connector = wagmiConfig.connectors[0]; // Farcaster connector
+                
+                if (!connector) {
+                    return { isConnected: false, address: null };
+                }
+                
+                // Check if already connected
+                const isConnected = await connector.isAuthorized();
+                
+                if (isConnected) {
+                    const account = await connector.getAccount();
+                    return { isConnected: true, address: account };
+                }
+                
+                // Try to connect
+                console.log('🔄 Attempting to connect wallet...');
+                const account = await connector.connect();
+                return { isConnected: true, address: account.accounts[0] };
+                
+            } catch (error) {
+                console.error('❌ Wallet connection failed:', error);
+                return { isConnected: false, address: null };
+            }
+        }
+        
+        // Send batch transaction using Wagmi approach
+        async function sendBatchTransaction(calls) {
+            try {
+                // For now, fallback to individual transactions since useSendCalls is a React hook
+                // In a React app, this would use useSendCalls hook
+                console.log('📦 Sending batch calls via individual transactions...');
+                
+                // Send approve transaction first
+                const approveResult = await sendSingleTransaction(calls[0]);
+                if (!approveResult.success) {
+                    throw new Error('Approval transaction failed');
+                }
+                
+                // Wait for approve confirmation
+                await waitForTransactionConfirmation(approveResult.hash);
+                
+                // Send purchase transaction
+                const purchaseResult = await sendSingleTransaction(calls[1]);
+                if (!purchaseResult.success) {
+                    throw new Error('Purchase transaction failed');
+                }
+                
+                return { success: true, hash: purchaseResult.hash };
+                
+            } catch (error) {
+                console.error('❌ Batch transaction failed:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Send individual transaction using Farcaster SDK
+        async function sendSingleTransaction(call) {
+            try {
+                if (!window.farcasterSDK) {
+                    throw new Error('Farcaster SDK not available');
+                }
+                
+                const result = await window.farcasterSDK.actions.sendTransaction({
+                    to: call.to,
+                    data: call.data,
+                    value: '0'
+                });
+                
+                if (result.success) {
+                    return { success: true, hash: result.transactionId };
+                } else {
+                    return { success: false, error: result.reason || 'Transaction failed' };
+                }
+                
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
         // ⏳ WAIT FOR TRANSACTION CONFIRMATION
         async function waitForTransactionConfirmation(txHash) {
             try {
@@ -808,112 +895,83 @@
             }
         }
         
-        // 💳 CORE PAYMENT FUNCTION
+        // 💳 NEW WAGMI-BASED BATCH PAYMENT FUNCTION
         async function purchaseLives() {
             const statusEl = document.getElementById('paymentStatus');
             const purchaseBtn = document.getElementById('purchaseBtn');
             const amount = parseInt(document.getElementById('livesAmount').value);
             const totalUSDC = amount * PRICING.USDC_PER_LIFE;
             
-            console.log('💰 Starting purchase:', { amount, totalUSDC });
+            console.log('💰 Starting batch purchase:', { amount, totalUSDC });
             
             // Disable button during purchase
             purchaseBtn.disabled = true;
             purchaseBtn.textContent = 'Processing...';
             
             try {
-                // Validate Farcaster environment
-                console.log('💰 Payment validation check:', {
-                    farcasterSDK: !!window.farcasterSDK,
-                    isInMiniApp: window.isInMiniApp,
-                    userAddress: userAddress
-                });
-                
-                if (!window.farcasterSDK) {
-                    throw new Error('Farcaster SDK not available');
+                // Check wallet connection
+                const account = await getWalletAccount();
+                if (!account.isConnected) {
+                    throw new Error('Wallet not connected');
                 }
                 
-                // Note: isInMiniApp detection seems unreliable, so we'll proceed if SDK exists
-                console.log('✅ Farcaster SDK detected, proceeding with payment...');
+                userAddress = account.address;
+                console.log('✅ Wallet connected:', userAddress);
                 
-                if (!userAddress) {
-                    // Try to get user address if not available
-                    console.log('🔄 No user address, attempting to get wallet address...');
-                    try {
-                        const provider = await window.farcasterSDK.wallet.getEthereumProvider();
-                        const accounts = await provider.request({method: 'eth_accounts'});
-                        if (accounts && accounts.length > 0) {
-                            userAddress = accounts[0];
-                            console.log('✅ Got wallet address:', userAddress);
-                        } else {
-                            throw new Error('Wallet not connected - no accounts found');
-                        }
-                    } catch (walletError) {
-                        console.error('❌ Failed to get wallet address:', walletError);
-                        throw new Error('Wallet not connected');
-                    }
-                }
-                
-                statusEl.innerHTML = '⏳ Step 1: Approving USDC...';
+                statusEl.innerHTML = '⏳ Preparing batch transaction (Approve + Purchase)...';
                 statusEl.style.background = 'rgba(255, 165, 0, 0.2)';
                 statusEl.style.color = '#FFA500';
                 
-                // Step 1: USDC approval transaction
+                // Prepare batch transaction calls
                 const approveCalldata = encodeFunctionData({
                     abi: USDC_ABI,
                     functionName: 'approve',
                     args: [CONTRACTS.LIVES, BigInt(totalUSDC)]
                 });
                 
-                const approveResult = await window.farcasterSDK.actions.sendTransaction({
-                    to: CONTRACTS.USDC,
-                    data: approveCalldata,
-                    value: '0'
-                });
-                
-                if (!approveResult.success) {
-                    throw new Error(approveResult.reason === 'rejected_by_user' ? 'Approval cancelled by user' : 'USDC approval failed');
-                }
-                
-                console.log('✅ USDC approved:', approveResult.transactionId);
-                await waitForTransactionConfirmation(approveResult.transactionId);
-                
-                statusEl.innerHTML = '⏳ Step 2: Purchasing lives...';
-                
-                // Step 2: Contract purchase call
                 const buyCalldata = encodeFunctionData({
                     abi: LIVES_ABI,
                     functionName: 'buyLivesWithUSDC',
                     args: [amount]
                 });
                 
-                const buyResult = await window.farcasterSDK.actions.sendTransaction({
-                    to: CONTRACTS.LIVES,
-                    data: buyCalldata,
-                    value: '0'
-                });
+                const batchCalls = [
+                    {
+                        to: CONTRACTS.USDC,
+                        data: approveCalldata
+                    },
+                    {
+                        to: CONTRACTS.LIVES,
+                        data: buyCalldata
+                    }
+                ];
                 
-                if (!buyResult.success) {
-                    throw new Error(buyResult.reason === 'rejected_by_user' ? 'Purchase cancelled by user' : 'Lives purchase failed');
+                console.log('📦 Sending batch transaction:', batchCalls);
+                statusEl.innerHTML = '⏳ Sending batch transaction...';
+                
+                // Send batch transaction using Wagmi
+                const result = await sendBatchTransaction(batchCalls);
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Batch transaction failed');
                 }
                 
-                console.log('✅ Purchase transaction sent:', buyResult.transactionId);
+                console.log('✅ Batch transaction sent:', result.hash);
+                statusEl.innerHTML = '⏳ Confirming transaction...';
                 
-                statusEl.innerHTML = '⏳ Step 3: Confirming transaction...';
+                // Wait for confirmation
+                await waitForTransactionConfirmation(result.hash);
                 
-                // Step 3: Wait for blockchain confirmation
-                await waitForTransactionConfirmation(buyResult.transactionId);
+                statusEl.innerHTML = '⏳ Refreshing lives...';
                 
-                statusEl.innerHTML = '⏳ Step 4: Refreshing lives...';
-                
-                // Step 4: Refresh lives from contract
+                // Refresh lives from contract
                 await refreshLivesFromContract();
                 
                 statusEl.innerHTML = `✅ Success! ${amount} life${amount > 1 ? 's' : ''} purchased!`;
                 statusEl.style.background = 'rgba(0, 255, 136, 0.2)';
                 statusEl.style.color = '#00ff88';
                 
-                console.log('🎉 Purchase completed successfully!');
+                console.log('🎉 Batch purchase completed successfully!');
                 
                 setTimeout(() => {
                     closeModal();
@@ -932,40 +990,11 @@
             }
         }
         
-        // 🎮 MODAL MANAGEMENT
+        // 🎮 MODAL MANAGEMENT WITH WAGMI
         function showBuyLivesModal() {
-            const isInFarcaster = window.farcasterSDK && window.isInMiniApp;
+            console.log('🎮 showBuyLivesModal called with Wagmi approach');
             
-            console.log('🎮 showBuyLivesModal called. Environment check:', {
-                isWalletMode,
-                isInFarcaster,
-                userAddress,
-                farcasterSDK: !!window.farcasterSDK,
-                isInMiniApp: window.isInMiniApp
-            });
-            
-            // TEMP FIX: Always show modal for testing
-            const forceShowModal = true;
-            
-            if (!forceShowModal && !isWalletMode && !isInFarcaster) {
-                console.log('🌐 Payment not available - not in Farcaster environment');
-                return;
-            }
-            
-            // If we're in Farcaster but wallet isn't initialized, try to initialize it
-            if (!forceShowModal && !isWalletMode && isInFarcaster) {
-                console.log('🔄 In Farcaster but wallet not initialized, attempting initialization...');
-                initializeWallet().then((success) => {
-                    if (success) {
-                        console.log('✅ Wallet initialized successfully, showing modal');
-                        showBuyLivesModal(); // Recursive call after successful initialization
-                    } else {
-                        console.log('❌ Wallet initialization failed');
-                    }
-                });
-                return;
-            }
-            
+            // Always try to show modal and handle connection inside payment function
             console.log('🎮 Showing buy lives modal...');
             document.getElementById('buyLivesModal').style.display = 'flex';
             document.getElementById('paymentStatus').innerHTML = '';
@@ -1136,10 +1165,7 @@
                     userAgent: navigator.userAgent
                 });
                 
-                // TEMP FIX: Always show payment option - remove this after testing
-                const forcePaymentMode = true;
-                
-                if (window.isWalletMode || isInFarcaster || forcePaymentMode) {
+                if (window.isWalletMode || isInFarcaster) {
                     document.getElementById('introText').textContent = "❌ No lives remaining! Purchase more lives to continue.";
                     document.getElementById('continueBtn').textContent = "Buy Lives";
                     document.getElementById('continueBtn').onclick = window.showBuyLivesModal;
@@ -1830,10 +1856,7 @@
                     isInMiniApp: window.isInMiniApp
                 });
                 
-                // TEMP FIX: Always show payment modal - remove after testing
-                const forcePaymentMode = true;
-                
-                if (window.isWalletMode || isInFarcaster || forcePaymentMode) {
+                if (window.isWalletMode || isInFarcaster) {
                     setTimeout(() => {
                         window.showBuyLivesModal();
                     }, 1000);
