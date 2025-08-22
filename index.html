@@ -826,12 +826,38 @@
             
             try {
                 // Validate Farcaster environment
+                console.log('💰 Payment validation check:', {
+                    farcasterSDK: !!window.farcasterSDK,
+                    isInMiniApp: window.isInMiniApp,
+                    userAddress: userAddress
+                });
+                
                 if (!window.farcasterSDK || !window.isInMiniApp) {
-                    throw new Error('Payment requires Farcaster app environment');
+                    // Try to initialize wallet if not done yet
+                    console.log('🔄 Farcaster environment not detected, trying wallet initialization...');
+                    await initializeWallet();
+                    
+                    if (!window.farcasterSDK || !window.isInMiniApp) {
+                        throw new Error('Payment requires Farcaster app environment');
+                    }
                 }
                 
                 if (!userAddress) {
-                    throw new Error('Wallet not connected');
+                    // Try to get user address if not available
+                    console.log('🔄 No user address, attempting to get wallet address...');
+                    try {
+                        const provider = await window.farcasterSDK.wallet.getEthereumProvider();
+                        const accounts = await provider.request({method: 'eth_accounts'});
+                        if (accounts && accounts.length > 0) {
+                            userAddress = accounts[0];
+                            console.log('✅ Got wallet address:', userAddress);
+                        } else {
+                            throw new Error('Wallet not connected - no accounts found');
+                        }
+                    } catch (walletError) {
+                        console.error('❌ Failed to get wallet address:', walletError);
+                        throw new Error('Wallet not connected');
+                    }
                 }
                 
                 statusEl.innerHTML = '⏳ Step 1: Approving USDC...';
