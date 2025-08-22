@@ -697,7 +697,7 @@
         
         // Global state
         let userAddress = null;
-        let userLives = 0; // Start with 0 lives - must purchase to play
+        let userLives = 3; // Start with 3 free lives for new players
         let isWalletMode = false;
         
         // Make constants globally available
@@ -738,9 +738,9 @@
                 console.error('⚠️ Wallet initialization failed:', error);
             }
             
-            // Set to 0 lives if no wallet
-            console.log('🌐 No wallet - starting with 0 lives');
-            userLives = 0;
+            // Set to 3 free lives if no wallet
+            console.log('🌐 No wallet - starting with 3 free lives');
+            userLives = 3;
             updateLivesDisplay();
             return false;
         }
@@ -856,7 +856,7 @@
                     args: [CONTRACTS.LIVES, BigInt(totalUSDC)]
                 });
                 
-                const approveResult = await window.farcasterSDK.actions.sendTransaction({
+                const approveResult = await window.farcasterSDK.wallet.sendTransaction({
                     to: CONTRACTS.USDC,
                     data: approveCalldata,
                     value: '0'
@@ -878,7 +878,7 @@
                     args: [amount]
                 });
                 
-                const buyResult = await window.farcasterSDK.actions.sendTransaction({
+                const buyResult = await window.farcasterSDK.wallet.sendTransaction({
                     to: CONTRACTS.LIVES,
                     data: buyCalldata,
                     value: '0'
