@@ -629,10 +629,10 @@
     <script type="module">
         // 💰 SMART CONTRACT CONSTANTS & CONFIGURATION
         
-        // Contract addresses (Base L2 Mainnet)
+        // Contract addresses (Base Sepolia Testnet)
         const CONTRACTS = {
-            LIVES: '0xcEBb1339E6527C445c9496fF76E645E6600A3Ef5',
-            USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            LIVES: '0x5ce6ed6fbe544aba92dfb7850613e407781256f1',
+            USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
         };
         
         // Pricing configuration
@@ -672,26 +672,26 @@
             }
         ];
         
-        // Import Wagmi and Farcaster connector
-        import { createConfig, http, useAccount, useConnect, useDisconnect, useSendCalls } from 'https://esm.sh/wagmi';
-        import { createPublicClient, encodeFunctionData, parseUnits } from 'https://esm.sh/viem';
-        import { base } from 'https://esm.sh/wagmi/chains';
-        import { farcasterMiniApp as miniAppConnector } from 'https://esm.sh/@farcaster/miniapp-wagmi-connector';
+        // Import simple blockchain utilities - no complex Wagmi
+        import { createPublicClient, http, encodeFunctionData } from 'https://esm.sh/viem';
         
-        // Configure Wagmi with Farcaster connector
-        const wagmiConfig = createConfig({
-            chains: [base],
-            transports: {
-                [base.id]: http(),
+        // Base Sepolia testnet configuration
+        const baseChain = {
+            id: 84532,
+            name: 'Base Sepolia',
+            network: 'base-sepolia',
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: {
+                default: { http: ['https://sepolia.base.org'] }
             },
-            connectors: [
-                miniAppConnector()
-            ]
-        });
+            blockExplorers: {
+                default: { name: 'Base Sepolia Explorer', url: 'https://sepolia.basescan.org' }
+            }
+        };
         
         // Create public client for reading from blockchain
         const publicClient = createPublicClient({
-            chain: base,
+            chain: baseChain,
             transport: http()
         });
         
@@ -708,30 +708,38 @@
         window.publicClient = publicClient;
         window.encodeFunctionData = encodeFunctionData;
         
-        // 🔗 NEW WAGMI-BASED WALLET INITIALIZATION
+        // 🔗 SIMPLE FARCASTER WALLET INITIALIZATION
         async function initializeWallet() {
             try {
-                console.log('🔗 Initializing wallet with Wagmi connector...');
+                console.log('🔗 Initializing Farcaster wallet...');
                 
-                // Try to get wallet account using new approach
-                const account = await getWalletAccount();
-                
-                if (account.isConnected && account.address) {
-                    userAddress = account.address;
-                    isWalletMode = true;
-                    console.log('✅ Wallet connected via Wagmi! Address:', userAddress);
+                if (window.farcasterSDK) {
+                    console.log('✅ Farcaster SDK found, getting wallet...');
                     
-                    await refreshLivesFromContract();
-                    return true;
+                    const provider = await window.farcasterSDK.wallet.getEthereumProvider();
+                    const accounts = await provider.request({method: 'eth_accounts'});
+                    
+                    console.log('👛 Accounts:', accounts);
+                    
+                    if (accounts && accounts.length > 0) {
+                        userAddress = accounts[0];
+                        isWalletMode = true;
+                        console.log('✅ Wallet connected! Address:', userAddress);
+                        
+                        await refreshLivesFromContract();
+                        return true;
+                    } else {
+                        console.log('⚠️ No accounts found');
+                    }
                 } else {
-                    console.log('⚠️ Wallet connection failed via Wagmi');
+                    console.log('⚠️ Farcaster SDK not available');
                 }
             } catch (error) {
-                console.error('⚠️ Wagmi wallet initialization failed:', error);
+                console.error('⚠️ Wallet initialization failed:', error);
             }
             
-            // Fallback to browser mode
-            console.log('🌐 Using browser mode - starting with 0 lives');
+            // Set to 0 lives if no wallet
+            console.log('🌐 No wallet - starting with 0 lives');
             userLives = 0;
             updateLivesDisplay();
             return false;
@@ -786,90 +794,6 @@
             ];
         }
         
-        // 🔗 WAGMI HELPER FUNCTIONS
-        
-        // Get wallet account information
-        async function getWalletAccount() {
-            try {
-                // Use the Wagmi connector to get account info
-                const connector = wagmiConfig.connectors[0]; // Farcaster connector
-                
-                if (!connector) {
-                    return { isConnected: false, address: null };
-                }
-                
-                // Check if already connected
-                const isConnected = await connector.isAuthorized();
-                
-                if (isConnected) {
-                    const account = await connector.getAccount();
-                    return { isConnected: true, address: account };
-                }
-                
-                // Try to connect
-                console.log('🔄 Attempting to connect wallet...');
-                const account = await connector.connect();
-                return { isConnected: true, address: account.accounts[0] };
-                
-            } catch (error) {
-                console.error('❌ Wallet connection failed:', error);
-                return { isConnected: false, address: null };
-            }
-        }
-        
-        // Send batch transaction using Wagmi approach
-        async function sendBatchTransaction(calls) {
-            try {
-                // For now, fallback to individual transactions since useSendCalls is a React hook
-                // In a React app, this would use useSendCalls hook
-                console.log('📦 Sending batch calls via individual transactions...');
-                
-                // Send approve transaction first
-                const approveResult = await sendSingleTransaction(calls[0]);
-                if (!approveResult.success) {
-                    throw new Error('Approval transaction failed');
-                }
-                
-                // Wait for approve confirmation
-                await waitForTransactionConfirmation(approveResult.hash);
-                
-                // Send purchase transaction
-                const purchaseResult = await sendSingleTransaction(calls[1]);
-                if (!purchaseResult.success) {
-                    throw new Error('Purchase transaction failed');
-                }
-                
-                return { success: true, hash: purchaseResult.hash };
-                
-            } catch (error) {
-                console.error('❌ Batch transaction failed:', error);
-                return { success: false, error: error.message };
-            }
-        }
-        
-        // Send individual transaction using Farcaster SDK
-        async function sendSingleTransaction(call) {
-            try {
-                if (!window.farcasterSDK) {
-                    throw new Error('Farcaster SDK not available');
-                }
-                
-                const result = await window.farcasterSDK.actions.sendTransaction({
-                    to: call.to,
-                    data: call.data,
-                    value: '0'
-                });
-                
-                if (result.success) {
-                    return { success: true, hash: result.transactionId };
-                } else {
-                    return { success: false, error: result.reason || 'Transaction failed' };
-                }
-                
-            } catch (error) {
-                return { success: false, error: error.message };
-            }
-        }
         
         // ⏳ WAIT FOR TRANSACTION CONFIRMATION
         async function waitForTransactionConfirmation(txHash) {
@@ -895,72 +819,79 @@
             }
         }
         
-        // 💳 NEW WAGMI-BASED BATCH PAYMENT FUNCTION
+        // 💳 SIMPLE FARCASTER PAYMENT FUNCTION
         async function purchaseLives() {
             const statusEl = document.getElementById('paymentStatus');
             const purchaseBtn = document.getElementById('purchaseBtn');
             const amount = parseInt(document.getElementById('livesAmount').value);
             const totalUSDC = amount * PRICING.USDC_PER_LIFE;
             
-            console.log('💰 Starting batch purchase:', { amount, totalUSDC });
+            console.log('💰 Starting purchase:', { amount, totalUSDC });
             
             // Disable button during purchase
             purchaseBtn.disabled = true;
             purchaseBtn.textContent = 'Processing...';
             
             try {
-                // Check wallet connection
-                const account = await getWalletAccount();
-                if (!account.isConnected) {
-                    throw new Error('Wallet not connected');
+                // Ensure wallet is connected
+                if (!userAddress) {
+                    console.log('🔄 No wallet address, initializing...');
+                    await initializeWallet();
+                    
+                    if (!userAddress) {
+                        throw new Error('Please connect your wallet in Farcaster');
+                    }
                 }
                 
-                userAddress = account.address;
-                console.log('✅ Wallet connected:', userAddress);
+                console.log('✅ Using wallet address:', userAddress);
                 
-                statusEl.innerHTML = '⏳ Preparing batch transaction (Approve + Purchase)...';
+                statusEl.innerHTML = '⏳ Step 1: Approving USDC...';
                 statusEl.style.background = 'rgba(255, 165, 0, 0.2)';
                 statusEl.style.color = '#FFA500';
                 
-                // Prepare batch transaction calls
+                // Step 1: USDC approval
                 const approveCalldata = encodeFunctionData({
                     abi: USDC_ABI,
                     functionName: 'approve',
                     args: [CONTRACTS.LIVES, BigInt(totalUSDC)]
                 });
                 
+                const approveResult = await window.farcasterSDK.actions.sendTransaction({
+                    to: CONTRACTS.USDC,
+                    data: approveCalldata,
+                    value: '0'
+                });
+                
+                if (!approveResult.success) {
+                    throw new Error('USDC approval failed: ' + (approveResult.reason || 'Unknown error'));
+                }
+                
+                console.log('✅ USDC approved:', approveResult.transactionId);
+                await waitForTransactionConfirmation(approveResult.transactionId);
+                
+                statusEl.innerHTML = '⏳ Step 2: Purchasing lives...';
+                
+                // Step 2: Purchase lives
                 const buyCalldata = encodeFunctionData({
                     abi: LIVES_ABI,
                     functionName: 'buyLivesWithUSDC',
                     args: [amount]
                 });
                 
-                const batchCalls = [
-                    {
-                        to: CONTRACTS.USDC,
-                        data: approveCalldata
-                    },
-                    {
-                        to: CONTRACTS.LIVES,
-                        data: buyCalldata
-                    }
-                ];
+                const buyResult = await window.farcasterSDK.actions.sendTransaction({
+                    to: CONTRACTS.LIVES,
+                    data: buyCalldata,
+                    value: '0'
+                });
                 
-                console.log('📦 Sending batch transaction:', batchCalls);
-                statusEl.innerHTML = '⏳ Sending batch transaction...';
-                
-                // Send batch transaction using Wagmi
-                const result = await sendBatchTransaction(batchCalls);
-                
-                if (!result.success) {
-                    throw new Error(result.error || 'Batch transaction failed');
+                if (!buyResult.success) {
+                    throw new Error('Lives purchase failed: ' + (buyResult.reason || 'Unknown error'));
                 }
                 
-                console.log('✅ Batch transaction sent:', result.hash);
+                console.log('✅ Lives purchased:', buyResult.transactionId);
                 statusEl.innerHTML = '⏳ Confirming transaction...';
                 
-                // Wait for confirmation
-                await waitForTransactionConfirmation(result.hash);
+                await waitForTransactionConfirmation(buyResult.transactionId);
                 
                 statusEl.innerHTML = '⏳ Refreshing lives...';
                 
@@ -971,7 +902,7 @@
                 statusEl.style.background = 'rgba(0, 255, 136, 0.2)';
                 statusEl.style.color = '#00ff88';
                 
-                console.log('🎉 Batch purchase completed successfully!');
+                console.log('🎉 Purchase completed successfully!');
                 
                 setTimeout(() => {
                     closeModal();
@@ -990,11 +921,8 @@
             }
         }
         
-        // 🎮 MODAL MANAGEMENT WITH WAGMI
+        // 🎮 SIMPLE MODAL MANAGEMENT
         function showBuyLivesModal() {
-            console.log('🎮 showBuyLivesModal called with Wagmi approach');
-            
-            // Always try to show modal and handle connection inside payment function
             console.log('🎮 Showing buy lives modal...');
             document.getElementById('buyLivesModal').style.display = 'flex';
             document.getElementById('paymentStatus').innerHTML = '';
